@@ -35,7 +35,7 @@ Course Caddy is a mobile application that helps golfers calculate adjusted club 
 
 ### Pro Subscription ($2.99/month)
 - **Requires:** Base app purchase ($4.99) must be completed first
-- **Free Trial:** 1-day free trial for new Pro subscribers
+- **Free Trial:** 7-day free trial for new Pro subscribers
 - **Billing:** Charged to your Apple ID at confirmation of purchase
 - **Auto-Renewal:** Automatically renews unless cancelled 24 hours before period ends
 - **Cancellation:** Cancel anytime in iOS Settings → [Your Name] → Subscriptions
