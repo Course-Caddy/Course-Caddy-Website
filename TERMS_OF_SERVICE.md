@@ -228,4 +228,4 @@ BY USING COURSE CADDY, YOU ACKNOWLEDGE THAT YOU HAVE READ, UNDERSTOOD, AND AGREE
 Email: support@course-caddy.com
 Website: https://course-caddy.com
 
-© 2024-2026 Course Caddy LLC. All rights reserved.
+© 2025-2026 Course Caddy LLC. All rights reserved.
