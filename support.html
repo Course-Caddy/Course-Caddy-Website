@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Contact Course Caddy support team. Submit bug reports, feature requests, and get help with your golf app.">
+    <meta name="keywords" content="course caddy support, golf app help, contact support, bug report, feature request">
+    <meta name="author" content="Course Caddy LLC">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://course-caddy.com/support.html">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="favicon.png">
+
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="Course Caddy - Support & Contact">
+    <meta property="og:description" content="Get help with Course Caddy. Submit issues, suggestions, and feature requests.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://course-caddy.com/support.html">
+
+    <title>Support & Contact - Course Caddy</title>
+    <link rel="stylesheet" href="styles.css?v=5">
+    <style>
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #2c5f2d;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #2c5f2d;
+        }
+
+        .form-group textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 0.25rem;
+            color: #666;
+            font-size: 0.85rem;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #2c5f2d 0%, #97bc62 100%);
+            color: white;
+            padding: 1rem 2.5rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 4px 10px rgba(44, 95, 45, 0.2);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(44, 95, 45, 0.3);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .required {
+            color: #d32f2f;
+        }
+
+        .info-box {
+            background: #f0f7f0;
+            border-left: 4px solid #2c5f2d;
+            padding: 1.5rem;
+            border-radius: 6px;
+            margin-bottom: 2rem;
+        }
+
+        .info-box h4 {
+            color: #2c5f2d;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .info-box p {
+            margin-bottom: 0.5rem;
+        }
+
+        .info-box ul {
+            margin-left: 1.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .info-box li {
+            margin-bottom: 0.25rem;
+            color: #666;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1.5rem;
+            color: #2c5f2d;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .back-link:hover {
+            color: #97bc62;
+        }
+
+        .back-link::before {
+            content: "← ";
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Course Caddy</h1>
+            <p class="tagline">Support & Contact</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <a href="index.html" class="back-link">Back to Home</a>
+
+        <section class="hero">
+            <h2>Get Help & Share Your Feedback</h2>
+            <p class="lead">Have a question, found a bug, or want to suggest a new feature? We're here to help!</p>
+        </section>
+
+        <div class="info-box">
+            <h4>What can we help you with?</h4>
+            <ul>
+                <li><strong>Bug Reports:</strong> Let us know about any issues you're experiencing</li>
+                <li><strong>Feature Requests:</strong> Suggest new features or improvements</li>
+                <li><strong>General Questions:</strong> Ask about app features, subscriptions, or usage</li>
+                <li><strong>Technical Support:</strong> Get help with installation, permissions, or other technical issues</li>
+            </ul>
+        </div>
+
+        <section>
+            <h3>Contact Form</h3>
+            <form action="https://formsubmit.co/support@course-caddy.com" method="POST">
+                <!-- FormSubmit Configuration -->
+                <input type="hidden" name="_subject" value="New Course Caddy Support Request">
+                <input type="hidden" name="_captcha" value="false">
+                <input type="hidden" name="_template" value="box">
+                <input type="text" name="_honey" style="display:none">
+
+                <div class="form-group">
+                    <label for="name">Your Name <span class="required">*</span></label>
+                    <input type="text" id="name" name="name" required placeholder="John Doe">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Your Email <span class="required">*</span></label>
+                    <input type="email" id="email" name="email" required placeholder="you@example.com">
+                    <small>We'll use this to respond to your request</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="type">Type of Request <span class="required">*</span></label>
+                    <select id="type" name="type" required>
+                        <option value="">-- Please Select --</option>
+                        <option value="Bug Report">Bug Report</option>
+                        <option value="Feature Request">Feature Request / Suggestion</option>
+                        <option value="Technical Support">Technical Support</option>
+                        <option value="General Question">General Question</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="device">Device & OS (optional)</label>
+                    <input type="text" id="device" name="device" placeholder="e.g., iPhone 15 Pro, iOS 17.1">
+                    <small>Helpful for bug reports and technical issues</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="version">App Version (optional)</label>
+                    <input type="text" id="version" name="version" placeholder="e.g., 1.0.0">
+                    <small>Found in the About tab of the app</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="message">Message <span class="required">*</span></label>
+                    <textarea id="message" name="message" required placeholder="Please describe your issue or suggestion in detail..."></textarea>
+                    <small>Be as specific as possible to help us assist you better</small>
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="submit-btn">Send Message</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="contact">
+            <h3>Other Ways to Reach Us</h3>
+            <p>
+                <strong>Email:</strong> <a href="mailto:support@course-caddy.com">support@course-caddy.com</a><br>
+                <strong>Address:</strong> Course Caddy LLC, 6900 Brockwood Street
+            </p>
+            <p style="margin-top: 1rem; color: #666; font-size: 0.9rem;">
+                We typically respond within 24-48 hours during business days.
+            </p>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Course Caddy LLC. All rights reserved.</p>
+            <p><a href="index.html">Home</a> | <a href="privacy-policy.html">Privacy Policy</a> | <a href="terms-of-service.html">Terms of Service</a></p>
+        </div>
+    </footer>
+</body>
+</html>
