@@ -301,6 +301,55 @@
             background: #fff3cd;
             color: #856404;
         }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            border: 1px solid var(--color-gray-200);
+            border-radius: var(--radius-sm);
+            background: var(--color-white);
+            color: var(--color-gray-700);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        
+        .btn-small:hover {
+            background: var(--color-gray-100);
+            border-color: var(--color-gray-300);
+        }
+        
+        .btn-pdf {
+            background: var(--color-primary);
+            color: var(--color-white);
+            border-color: var(--color-primary);
+        }
+        
+        .btn-pdf:hover {
+            background: var(--color-primary-hover);
+            border-color: var(--color-primary-hover);
+        }
+        
+        .btn-download-all {
+            padding: 10px 20px;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            border: none;
+            border-radius: var(--radius-sm);
+            background: var(--color-primary);
+            color: var(--color-white);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        
+        .btn-download-all:hover {
+            background: var(--color-primary-hover);
+        }
+        
+        .btn-download-all:disabled {
+            background: var(--color-gray-300);
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -457,6 +506,8 @@
     </div>
 
     <script src="js/firebase-config.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="js/pdf-generator.js"></script>
     <script src="js/admin.js"></script>
 </body>
 </html>
