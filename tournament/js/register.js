@@ -1,8 +1,37 @@
 /**
  * Course Caddy Tournament - Registration Form Page
+ * Supports customizable club selection
  */
 
 let currentTournament = null;
+
+// Available clubs list
+const AVAILABLE_CLUBS = [
+    'Driver', '3 Wood', '5 Wood', '7 Wood', '9 Wood',
+    '2 Hybrid', '3 Hybrid', '4 Hybrid', '5 Hybrid', '6 Hybrid',
+    '2 Iron', '3 Iron', '4 Iron', '5 Iron', '6 Iron', '7 Iron', '8 Iron', '9 Iron',
+    'PW', 'GW', 'AW', 'SW', 'LW'
+];
+
+// Default clubs with distances
+const DEFAULT_CLUBS = [
+    { name: 'Driver', distance: 250 },
+    { name: '3 Wood', distance: 230 },
+    { name: '5 Wood', distance: 210 },
+    { name: '4 Iron', distance: 190 },
+    { name: '5 Iron', distance: 180 },
+    { name: '6 Iron', distance: 170 },
+    { name: '7 Iron', distance: 160 },
+    { name: '8 Iron', distance: 150 },
+    { name: '9 Iron', distance: 140 },
+    { name: 'PW', distance: 130 },
+    { name: 'GW', distance: 110 },
+    { name: 'SW', distance: 90 },
+    { name: 'LW', distance: 70 }
+];
+
+// Current clubs in the form
+let currentClubs = [];
 
 document.addEventListener('DOMContentLoaded', async function() {
     // Get tournament ID from URL
@@ -34,8 +63,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Populate tournament header
         populateTournamentHeader(currentTournament);
         
+        // Initialize clubs
+        initializeClubs();
+        
         // Set up form submission
         setupFormSubmission();
+        
+        // Set up add club button
+        setupAddClubButton();
         
     } catch (error) {
         console.error('Error loading tournament:', error);
@@ -48,7 +83,9 @@ document.addEventListener('DOMContentLoaded', async function() {
  * @param {Object} tournament 
  */
 function populateTournamentHeader(tournament) {
-    const tournamentDate = new Date(tournament.date);
+    const startDate = new Date(tournament.startDate || tournament.date);
+    const endDate = tournament.endDate ? new Date(tournament.endDate) : null;
+    
     const dateOptions = { 
         weekday: 'long', 
         year: 'numeric', 
@@ -56,9 +93,158 @@ function populateTournamentHeader(tournament) {
         day: 'numeric' 
     };
     
+    let dateStr = startDate.toLocaleDateString('en-US', dateOptions);
+    if (endDate && endDate.getTime() !== startDate.getTime()) {
+        const endOptions = { month: 'long', day: 'numeric', year: 'numeric' };
+        dateStr += ` - ${endDate.toLocaleDateString('en-US', endOptions)}`;
+    }
+    
     document.getElementById('tournament-name').textContent = tournament.name;
     document.getElementById('tournament-details').textContent = 
-        `${tournament.course} • ${tournamentDate.toLocaleDateString('en-US', dateOptions)}`;
+        `${tournament.course} • ${dateStr}`;
+}
+
+/**
+ * Initialize clubs with defaults
+ */
+function initializeClubs() {
+    currentClubs = [...DEFAULT_CLUBS];
+    renderClubs();
+}
+
+/**
+ * Render all clubs to the container
+ */
+function renderClubs() {
+    const container = document.getElementById('clubs-container');
+    container.innerHTML = '';
+    
+    currentClubs.forEach((club, index) => {
+        const row = createClubRow(club, index);
+        container.appendChild(row);
+    });
+}
+
+/**
+ * Create a club row element
+ * @param {Object} club 
+ * @param {number} index 
+ * @returns {HTMLElement}
+ */
+function createClubRow(club, index) {
+    const row = document.createElement('div');
+    row.className = 'club-row';
+    row.dataset.index = index;
+    
+    // Club select dropdown
+    const select = document.createElement('select');
+    select.className = 'club-select';
+    AVAILABLE_CLUBS.forEach(clubName => {
+        const option = document.createElement('option');
+        option.value = clubName;
+        option.textContent = clubName;
+        if (clubName === club.name) {
+            option.selected = true;
+        }
+        select.appendChild(option);
+    });
+    select.addEventListener('change', (e) => {
+        currentClubs[index].name = e.target.value;
+    });
+    
+    // Distance input with unit
+    const distanceWrapper = document.createElement('div');
+    distanceWrapper.style.textAlign = 'center';
+    
+    const distanceInput = document.createElement('input');
+    distanceInput.type = 'number';
+    distanceInput.className = 'club-distance-input';
+    distanceInput.value = club.distance;
+    distanceInput.min = 20;
+    distanceInput.max = 400;
+    distanceInput.addEventListener('change', (e) => {
+        currentClubs[index].distance = parseInt(e.target.value) || 0;
+    });
+    
+    const unitLabel = document.createElement('div');
+    unitLabel.className = 'club-unit-label';
+    unitLabel.textContent = 'yards';
+    
+    distanceWrapper.appendChild(distanceInput);
+    distanceWrapper.appendChild(unitLabel);
+    
+    // Remove button
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'btn-remove-club';
+    removeBtn.innerHTML = '×';
+    removeBtn.title = 'Remove club';
+    removeBtn.addEventListener('click', () => {
+        removeClub(index);
+    });
+    
+    row.appendChild(select);
+    row.appendChild(distanceWrapper);
+    row.appendChild(removeBtn);
+    
+    return row;
+}
+
+/**
+ * Remove a club from the list
+ * @param {number} index 
+ */
+function removeClub(index) {
+    if (currentClubs.length <= 1) {
+        alert('You must have at least one club.');
+        return;
+    }
+    currentClubs.splice(index, 1);
+    renderClubs();
+}
+
+/**
+ * Set up add club button
+ */
+function setupAddClubButton() {
+    const btn = document.getElementById('add-club-btn');
+    btn.addEventListener('click', () => {
+        if (currentClubs.length >= 14) {
+            alert('Maximum 14 clubs allowed.');
+            return;
+        }
+        
+        // Find a club not already in the bag
+        const usedClubs = currentClubs.map(c => c.name);
+        const availableClub = AVAILABLE_CLUBS.find(c => !usedClubs.includes(c));
+        
+        if (availableClub) {
+            // Estimate distance based on club type
+            let distance = 150;
+            if (availableClub.includes('Driver')) distance = 250;
+            else if (availableClub.includes('Wood')) distance = 220;
+            else if (availableClub.includes('Hybrid')) distance = 190;
+            else if (availableClub.includes('Iron')) {
+                const num = parseInt(availableClub) || 7;
+                distance = 200 - (num * 10);
+            }
+            else if (availableClub === 'PW') distance = 130;
+            else if (availableClub === 'GW' || availableClub === 'AW') distance = 110;
+            else if (availableClub === 'SW') distance = 90;
+            else if (availableClub === 'LW') distance = 70;
+            
+            currentClubs.push({ name: availableClub, distance });
+        } else {
+            // All clubs used, add a duplicate
+            currentClubs.push({ name: '7 Iron', distance: 160 });
+        }
+        
+        renderClubs();
+        
+        // Scroll to the new club
+        const container = document.getElementById('clubs-container');
+        container.lastChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
 }
 
 /**
@@ -90,7 +276,7 @@ function setupFormSubmission() {
             
             if (result.success) {
                 // Redirect to confirmation page
-                const confirmUrl = `confirm.html?name=${encodeURIComponent(registration.playerName)}&date=${encodeURIComponent(currentTournament.date)}`;
+                const confirmUrl = `confirm.html?name=${encodeURIComponent(registration.playerName)}&date=${encodeURIComponent(currentTournament.startDate || currentTournament.date)}`;
                 window.location.href = confirmUrl;
             } else {
                 throw new Error('Registration failed');
@@ -135,13 +321,15 @@ function validateForm() {
         return false;
     }
     
-    // Validate club distances
-    const clubInputs = document.querySelectorAll('.club-distance-input');
-    for (const input of clubInputs) {
-        const value = parseInt(input.value);
-        if (!value || value < 20 || value > 400) {
-            alert(`Please enter a valid distance for ${input.dataset.club} (20-400 yards).`);
-            input.focus();
+    // Validate clubs
+    if (currentClubs.length === 0) {
+        alert('Please add at least one club.');
+        return false;
+    }
+    
+    for (const club of currentClubs) {
+        if (!club.distance || club.distance < 20 || club.distance > 400) {
+            alert(`Please enter a valid distance for ${club.name} (20-400 yards).`);
             return false;
         }
     }
@@ -163,18 +351,11 @@ function gatherFormData() {
     const baselineElevation = parseInt(document.getElementById('baseline-elevation').value);
     const baselineHumidity = parseInt(document.getElementById('baseline-humidity').value) || 50;
     
-    // Club distances
-    const clubs = [];
-    const clubInputs = document.querySelectorAll('.club-distance-input');
-    clubInputs.forEach(input => {
-        const distance = parseInt(input.value);
-        if (distance && distance > 0) {
-            clubs.push({
-                name: input.dataset.club,
-                distance: distance
-            });
-        }
-    });
+    // Clubs - use currentClubs array
+    const clubs = currentClubs.map(club => ({
+        name: club.name,
+        distance: club.distance
+    }));
     
     return {
         tournamentId: currentTournament.id,
