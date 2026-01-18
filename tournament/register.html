@@ -7,6 +7,109 @@
     <link rel="stylesheet" href="css/tournament.css">
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+    <style>
+        /* Club customization styles */
+        .club-row {
+            display: grid;
+            grid-template-columns: 1fr 100px auto;
+            gap: 8px;
+            align-items: center;
+            background: var(--color-white);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border: 1px solid var(--color-gray-200);
+        }
+        
+        .club-select {
+            padding: 8px;
+            font-size: 0.9375rem;
+            border: 1px solid var(--color-gray-200);
+            border-radius: var(--radius-sm);
+            background: var(--color-gray-50);
+            color: var(--color-primary);
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        .club-select:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+        
+        .club-distance-input {
+            width: 100%;
+            padding: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--color-primary);
+            background: var(--color-gray-50);
+            border: 1px solid var(--color-gray-200);
+            border-radius: var(--radius-sm);
+            text-align: center;
+        }
+        
+        .club-distance-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            background: var(--color-white);
+        }
+        
+        .btn-remove-club {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: var(--color-error);
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.25rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-fast);
+        }
+        
+        .btn-remove-club:hover {
+            background: #c0392b;
+            transform: scale(1.1);
+        }
+        
+        .btn-add-club {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            background: var(--color-gray-100);
+            border: 2px dashed var(--color-gray-300);
+            border-radius: var(--radius-sm);
+            color: var(--color-gray-600);
+            font-size: 0.9375rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        
+        .btn-add-club:hover {
+            background: var(--color-primary-light);
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+        }
+        
+        .clubs-container {
+            margin-top: 12px;
+        }
+        
+        .club-unit-label {
+            font-size: 0.75rem;
+            color: var(--color-gray-500);
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
     <!-- Dark overlay for background -->
@@ -93,81 +196,16 @@
                         <span>🏌️</span> Your Club Distances
                     </h2>
                     <p class="form-section-subtitle">
-                        Enter your <strong>carry distances</strong> in yards (not total distance)
+                        Enter your <strong>carry distances</strong> in yards. Add, remove, or change clubs to match your bag.
                     </p>
                     
-                    <div class="clubs-grid" id="clubs-grid">
-                        <!-- Woods -->
-                        <div class="club-input-group">
-                            <div class="club-name">Driver</div>
-                            <input type="number" class="club-distance-input" data-club="Driver" value="250" min="100" max="400">
-                            <div class="club-unit">yards</div>
-                        </div>
-                        <div class="club-input-group">
-                            <div class="club-name">3 Wood</div>
-                            <input type="number" class="club-distance-input" data-club="3 Wood" value="230" min="100" max="350">
-                            <div class="club-unit">yards</div>
-                        </div>
-                        <div class="club-input-group">
-                            <div class="club-name">5 Wood</div>
-                            <input type="number" class="club-distance-input" data-club="5 Wood" value="210" min="100" max="320">
-                            <div class="club-unit">yards</div>
-                        </div>
-                        
-                        <!-- Irons -->
-                        <div class="club-input-group">
-                            <div class="club-name">4 Iron</div>
-                            <input type="number" class="club-distance-input" data-club="4 Iron" value="190" min="80" max="280">
-                            <div class="club-unit">yards</div>
-                        </div>
-                        <div class="club-input-group">
-                            <div class="club-name">5 Iron</div>
-                            <input type="number" class="club-distance-input" data-club="5 Iron" value="180" min="80" max="260">
-                            <div class="club-unit">yards</div>
-                        </div>
-                        <div class="club-input-group">
-                            <div class="club-name">6 Iron</div>
-                            <input type="number" class="club-distance-input" data-club="6 Iron" value="170" min="80" max="240">
-                            <div class="club-unit">yards</div>
-                        </div>
-                        <div class="club-input-group">
-                            <div class="club-name">7 Iron</div>
-                            <input type="number" class="club-distance-input" data-club="7 Iron" value="160" min="70" max="220">
-                            <div class="club-unit">yards</div>
-                        </div>
-                        <div class="club-input-group">
-                            <div class="club-name">8 Iron</div>
-                            <input type="number" class="club-distance-input" data-club="8 Iron" value="150" min="70" max="200">
-                            <div class="club-unit">yards</div>
-                        </div>
-                        <div class="club-input-group">
-                            <div class="club-name">9 Iron</div>
-                            <input type="number" class="club-distance-input" data-club="9 Iron" value="140" min="60" max="180">
-                            <div class="club-unit">yards</div>
-                        </div>
-                        
-                        <!-- Wedges -->
-                        <div class="club-input-group">
-                            <div class="club-name">PW</div>
-                            <input type="number" class="club-distance-input" data-club="PW" value="130" min="50" max="170">
-                            <div class="club-unit">yards</div>
-                        </div>
-                        <div class="club-input-group">
-                            <div class="club-name">GW</div>
-                            <input type="number" class="club-distance-input" data-club="GW" value="110" min="40" max="150">
-                            <div class="club-unit">yards</div>
-                        </div>
-                        <div class="club-input-group">
-                            <div class="club-name">SW</div>
-                            <input type="number" class="club-distance-input" data-club="SW" value="90" min="30" max="130">
-                            <div class="club-unit">yards</div>
-                        </div>
-                        <div class="club-input-group">
-                            <div class="club-name">LW</div>
-                            <input type="number" class="club-distance-input" data-club="LW" value="70" min="20" max="110">
-                            <div class="club-unit">yards</div>
-                        </div>
+                    <div class="clubs-container" id="clubs-container">
+                        <!-- Clubs will be dynamically added here -->
                     </div>
+                    
+                    <button type="button" class="btn-add-club" id="add-club-btn">
+                        <span>+</span> Add Club
+                    </button>
                 </section>
 
                 <!-- Submit Button -->
