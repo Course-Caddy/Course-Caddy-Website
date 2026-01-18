@@ -168,10 +168,10 @@ function createRegistrationItem(registration) {
             <div class="registration-clubs">${clubCount} clubs • ${registration.baselineTemp}°F • ${registration.baselineElevation}ft elevation</div>
         </div>
         <div style="display: flex; gap: 8px;">
-            <button class="btn-small btn-pdf" data-reg-id="${registration.id}" title="Download PDF">
+            <button class="btn-small btn-pdf" title="Download PDF">
                 📄 PDF
             </button>
-            <button class="btn-small" onclick="viewRegistration('${registration.id}')">
+            <button class="btn-small btn-view" title="View Details">
                 View
             </button>
         </div>
@@ -181,6 +181,12 @@ function createRegistrationItem(registration) {
     const pdfBtn = item.querySelector('.btn-pdf');
     pdfBtn.addEventListener('click', () => {
         downloadIndividualPDF(registration);
+    });
+    
+    // Add click handler for View button
+    const viewBtn = item.querySelector('.btn-view');
+    viewBtn.addEventListener('click', () => {
+        viewRegistration(registration);
     });
     
     return item;
@@ -202,16 +208,21 @@ function downloadIndividualPDF(registration) {
 
 /**
  * View registration details
- * @param {string} registrationId 
+ * @param {Object} registration - Registration object passed directly
  */
-function viewRegistration(registrationId) {
-    const registrations = JSON.parse(localStorage.getItem('mockRegistrations') || '[]');
-    const reg = registrations.find(r => r.id === registrationId);
-    
-    if (reg) {
-        console.log('Registration details:', reg);
-        alert(`Registration Details:\n\nName: ${reg.playerName}\nEmail: ${reg.playerEmail || 'Not provided'}\nBaseline: ${reg.baselineTemp}°F, ${reg.baselineElevation}ft, ${reg.baselineHumidity}%\n\nClubs:\n${reg.clubs.map(c => `${c.name}: ${c.distance} yds`).join('\n')}`);
+function viewRegistration(registration) {
+    if (!registration) {
+        alert('Registration not found.');
+        return;
     }
+    
+    console.log('Registration details:', registration);
+    
+    const clubsList = registration.clubs 
+        ? registration.clubs.map(c => `  ${c.name}: ${c.distance} yds`).join('\n')
+        : 'No clubs';
+    
+    alert(`Registration Details:\n\nName: ${registration.playerName}\nEmail: ${registration.playerEmail || 'Not provided'}\nBaseline Temp: ${registration.baselineTemp}°F\nBaseline Elevation: ${registration.baselineElevation}ft\nBaseline Humidity: ${registration.baselineHumidity || 50}%\n\nClubs:\n${clubsList}`);
 }
 
 /**
@@ -418,321 +429,3 @@ function setupLocationLookup() {
         try {
             // Step 1: Geocode address to lat/long using OpenStreetMap Nominatim
             const geocodeUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
-            const geocodeResponse = await fetch(geocodeUrl, {
-                headers: {
-                    'User-Agent': 'CourseCaddyTournament/1.0'
-                }
-            });
-            
-            if (!geocodeResponse.ok) {
-                throw new Error('Geocoding failed');
-            }
-            
-            const geocodeData = await geocodeResponse.json();
-            
-            if (geocodeData.length === 0) {
-                throw new Error('Address not found');
-            }
-            
-            const lat = parseFloat(geocodeData[0].lat);
-            const lon = parseFloat(geocodeData[0].lon);
-            
-            // Update lat/long fields
-            document.getElementById('course-latitude').value = lat.toFixed(4);
-            document.getElementById('course-longitude').value = lon.toFixed(4);
-            
-            statusEl.textContent = 'Found location, fetching elevation...';
-            
-            // Step 2: Get elevation using Open-Meteo Elevation API
-            const elevationUrl = `https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lon}`;
-            const elevationResponse = await fetch(elevationUrl);
-            
-            if (elevationResponse.ok) {
-                const elevationData = await elevationResponse.json();
-                if (elevationData.elevation && elevationData.elevation.length > 0) {
-                    // Convert meters to feet
-                    const elevationFeet = Math.round(elevationData.elevation[0] * 3.28084);
-                    document.getElementById('new-tournament-elevation').value = elevationFeet;
-                    statusEl.textContent = `✓ Found: ${geocodeData[0].display_name.substring(0, 50)}... | Elevation: ${elevationFeet} ft`;
-                    statusEl.style.color = 'var(--color-success)';
-                }
-            } else {
-                statusEl.textContent = `✓ Found location. Enter elevation manually.`;
-                statusEl.style.color = 'var(--color-warning)';
-            }
-            
-            btn.textContent = '✓ Found';
-            setTimeout(() => {
-                btn.textContent = '📍 Lookup Location';
-                btn.disabled = false;
-            }, 2000);
-            
-        } catch (error) {
-            console.error('Error looking up location:', error);
-            statusEl.textContent = '✗ Could not find address. Try a more specific address or enter coordinates manually.';
-            statusEl.style.color = 'var(--color-error)';
-            btn.textContent = '📍 Lookup Location';
-            btn.disabled = false;
-        }
-    });
-}
-
-/**
- * Set up fetch weather button
- */
-function setupFetchWeatherButton() {
-    const btn = document.getElementById('fetch-weather-btn');
-    
-    btn.addEventListener('click', async function() {
-        const lat = document.getElementById('course-latitude').value;
-        const lon = document.getElementById('course-longitude').value;
-        
-        if (!lat || !lon) {
-            alert('Please enter latitude and longitude for the course.');
-            return;
-        }
-        
-        if (tournamentDays.length === 0) {
-            alert('Please select tournament dates first.');
-            return;
-        }
-        
-        btn.disabled = true;
-        btn.classList.add('loading');
-        btn.textContent = '⏳ Fetching...';
-        
-        try {
-            await fetchWeatherForDays(parseFloat(lat), parseFloat(lon));
-            btn.textContent = '✓ Weather Fetched';
-            setTimeout(() => {
-                btn.textContent = '🌡️ Fetch Weather';
-                btn.disabled = false;
-                btn.classList.remove('loading');
-            }, 2000);
-        } catch (error) {
-            console.error('Error fetching weather:', error);
-            alert('Error fetching weather. Please try again or enter conditions manually.');
-            btn.textContent = '🌡️ Fetch Weather';
-            btn.disabled = false;
-            btn.classList.remove('loading');
-        }
-    });
-}
-
-/**
- * Fetch weather data from Open-Meteo API
- * @param {number} lat 
- * @param {number} lon 
- */
-async function fetchWeatherForDays(lat, lon) {
-    // Format dates for API
-    const startDate = formatDateId(tournamentDays[0]);
-    const endDate = formatDateId(tournamentDays[tournamentDays.length - 1]);
-    
-    // Open-Meteo API - free, no key needed
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,relative_humidity_2m&temperature_unit=fahrenheit&start_date=${startDate}&end_date=${endDate}&timezone=auto`;
-    
-    const response = await fetch(url);
-    if (!response.ok) {
-        throw new Error('Weather API error');
-    }
-    
-    const data = await response.json();
-    
-    // Process weather data for each day
-    tournamentDays.forEach((date, index) => {
-        const dayNum = index + 1;
-        const dateStr = formatDateId(date);
-        
-        // Find hourly data for this date
-        const hourlyTimes = data.hourly.time;
-        const temps = data.hourly.temperature_2m;
-        const humidity = data.hourly.relative_humidity_2m;
-        
-        // Get indices for this date (morning ~8am, afternoon ~2pm, evening ~6pm)
-        const morningIdx = hourlyTimes.findIndex(t => t.startsWith(dateStr) && t.includes('T08:'));
-        const afternoonIdx = hourlyTimes.findIndex(t => t.startsWith(dateStr) && t.includes('T14:'));
-        const eveningIdx = hourlyTimes.findIndex(t => t.startsWith(dateStr) && t.includes('T18:'));
-        
-        // Update form fields
-        if (morningIdx !== -1) {
-            const morningTempInput = document.querySelector(`.morning-temp[data-day="${dayNum}"]`);
-            const morningHumidityInput = document.querySelector(`.morning-humidity[data-day="${dayNum}"]`);
-            if (morningTempInput) morningTempInput.value = Math.round(temps[morningIdx]);
-            if (morningHumidityInput) morningHumidityInput.value = Math.round(humidity[morningIdx]);
-        }
-        
-        if (afternoonIdx !== -1) {
-            const afternoonTempInput = document.querySelector(`.afternoon-temp[data-day="${dayNum}"]`);
-            const afternoonHumidityInput = document.querySelector(`.afternoon-humidity[data-day="${dayNum}"]`);
-            if (afternoonTempInput) afternoonTempInput.value = Math.round(temps[afternoonIdx]);
-            if (afternoonHumidityInput) afternoonHumidityInput.value = Math.round(humidity[afternoonIdx]);
-        }
-        
-        if (eveningIdx !== -1) {
-            const eveningTempInput = document.querySelector(`.evening-temp[data-day="${dayNum}"]`);
-            const eveningHumidityInput = document.querySelector(`.evening-humidity[data-day="${dayNum}"]`);
-            if (eveningTempInput) eveningTempInput.value = Math.round(temps[eveningIdx]);
-            if (eveningHumidityInput) eveningHumidityInput.value = Math.round(humidity[eveningIdx]);
-        }
-        
-        // Update status badge
-        const card = document.querySelector(`.day-conditions-card[data-day="${dayNum}"]`);
-        if (card) {
-            const statusBadge = card.querySelector('.weather-status');
-            if (statusBadge) {
-                statusBadge.textContent = 'Auto-filled';
-                statusBadge.classList.remove('manual');
-                statusBadge.classList.add('fetched');
-            }
-        }
-    });
-}
-
-/**
- * Set up create tournament form
- */
-function setupCreateForm() {
-    const form = document.getElementById('create-tournament-form');
-    
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        if (tournamentDays.length === 0) {
-            alert('Please select start and end dates.');
-            return;
-        }
-        
-        // Gather day conditions
-        const days = [];
-        tournamentDays.forEach((date, index) => {
-            const dayNum = index + 1;
-            days.push({
-                date: formatDateId(date),
-                dayNumber: dayNum,
-                morningTemp: parseInt(document.querySelector(`.morning-temp[data-day="${dayNum}"]`).value),
-                morningHumidity: parseInt(document.querySelector(`.morning-humidity[data-day="${dayNum}"]`).value),
-                afternoonTemp: parseInt(document.querySelector(`.afternoon-temp[data-day="${dayNum}"]`).value),
-                afternoonHumidity: parseInt(document.querySelector(`.afternoon-humidity[data-day="${dayNum}"]`).value),
-                eveningTemp: parseInt(document.querySelector(`.evening-temp[data-day="${dayNum}"]`).value),
-                eveningHumidity: parseInt(document.querySelector(`.evening-humidity[data-day="${dayNum}"]`).value)
-            });
-        });
-        
-        const tournament = {
-            id: 'tournament-' + Date.now(),
-            name: document.getElementById('new-tournament-name').value.trim(),
-            course: document.getElementById('new-tournament-course').value.trim(),
-            startDate: document.getElementById('new-tournament-start-date').value,
-            endDate: document.getElementById('new-tournament-end-date').value,
-            date: document.getElementById('new-tournament-start-date').value, // For backwards compatibility
-            registrationCutoff: document.getElementById('new-tournament-cutoff').value,
-            elevation: parseInt(document.getElementById('new-tournament-elevation').value),
-            latitude: parseFloat(document.getElementById('course-latitude').value) || null,
-            longitude: parseFloat(document.getElementById('course-longitude').value) || null,
-            days: days,
-            // Keep first day conditions at top level for backwards compatibility
-            morningTemp: days[0].morningTemp,
-            morningHumidity: days[0].morningHumidity,
-            afternoonTemp: days[0].afternoonTemp,
-            afternoonHumidity: days[0].afternoonHumidity,
-            eveningTemp: days[0].eveningTemp,
-            eveningHumidity: days[0].eveningHumidity
-        };
-        
-        if (USE_MOCK_DATA) {
-            MOCK_TOURNAMENTS.push(tournament);
-            alert('Tournament created successfully!\n\nNote: In mock mode, this will be lost on page refresh. Set up Firebase for persistent storage.');
-            await loadTournaments();
-            form.reset();
-            document.getElementById('days-conditions-container').innerHTML = '<div class="no-days-message">Select start and end dates above to configure daily conditions</div>';
-            tournamentDays = [];
-            document.querySelector('[data-tab="registrations"]').click();
-        } else {
-            try {
-                await db.collection('tournaments').doc(tournament.id).set(tournament);
-                alert('Tournament created successfully!');
-                await loadTournaments();
-                form.reset();
-                document.getElementById('days-conditions-container').innerHTML = '<div class="no-days-message">Select start and end dates above to configure daily conditions</div>';
-                tournamentDays = [];
-                document.querySelector('[data-tab="registrations"]').click();
-            } catch (error) {
-                console.error('Error creating tournament:', error);
-                alert('Error creating tournament. Please try again.');
-            }
-        }
-    });
-}
-
-/**
- * Format date as "Jun 14, 2025"
- * @param {Date} date 
- * @returns {string}
- */
-function formatDate(date) {
-    const options = { 
-        month: 'short', 
-        day: 'numeric',
-        year: 'numeric'
-    };
-    return date.toLocaleDateString('en-US', options);
-}
-
-/**
- * Format date as "Saturday, June 14, 2025"
- * @param {Date} date 
- * @returns {string}
- */
-function formatDateLong(date) {
-    const options = { 
-        weekday: 'long',
-        month: 'long', 
-        day: 'numeric',
-        year: 'numeric'
-    };
-    return date.toLocaleDateString('en-US', options);
-}
-
-/**
- * Format date as "2025-06-14" for API calls
- * @param {Date} date 
- * @returns {string}
- */
-function formatDateId(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
-
-/**
- * Format date and time as "Jun 14, 2025 at 2:34 PM"
- * @param {Date} date 
- * @returns {string}
- */
-function formatDateTime(date) {
-    const dateOptions = { 
-        month: 'short', 
-        day: 'numeric',
-        year: 'numeric'
-    };
-    const timeOptions = {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-    };
-    
-    return `${date.toLocaleDateString('en-US', dateOptions)} at ${date.toLocaleTimeString('en-US', timeOptions)}`;
-}
-
-/**
- * Escape HTML to prevent XSS
- * @param {string} text 
- * @returns {string}
- */
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
