@@ -167,14 +167,37 @@ function createRegistrationItem(registration) {
             <div class="registration-time">Submitted: ${submittedAt}</div>
             <div class="registration-clubs">${clubCount} clubs • ${registration.baselineTemp}°F • ${registration.baselineElevation}ft elevation</div>
         </div>
-        <div>
+        <div style="display: flex; gap: 8px;">
+            <button class="btn-small btn-pdf" data-reg-id="${registration.id}" title="Download PDF">
+                📄 PDF
+            </button>
             <button class="btn-small" onclick="viewRegistration('${registration.id}')">
-                View Details
+                View
             </button>
         </div>
     `;
     
+    // Add click handler for PDF button
+    const pdfBtn = item.querySelector('.btn-pdf');
+    pdfBtn.addEventListener('click', () => {
+        downloadIndividualPDF(registration);
+    });
+    
     return item;
+}
+
+/**
+ * Download PDF for an individual player
+ * @param {Object} registration 
+ */
+function downloadIndividualPDF(registration) {
+    const tournament = tournaments.find(t => t.id === selectedTournamentId);
+    if (!tournament) {
+        alert('Tournament not found.');
+        return;
+    }
+    
+    downloadPlayerPDF(tournament, registration);
 }
 
 /**
@@ -203,9 +226,42 @@ function setupDownloadButton() {
             return;
         }
         
-        alert('PDF download will be available once Firebase Cloud Functions are set up.\n\nThe function will:\n1. Generate PDFs for all registrations\n2. Package them into a ZIP file\n3. Download to your computer');
+        // Get tournament data
+        const tournament = tournaments.find(t => t.id === selectedTournamentId);
+        if (!tournament) {
+            alert('Tournament not found.');
+            return;
+        }
         
-        console.log('Download all PDFs for tournament:', selectedTournamentId);
+        // Get registrations
+        btn.disabled = true;
+        btn.textContent = '⏳ Generating PDFs...';
+        
+        try {
+            const registrations = await getRegistrations(selectedTournamentId);
+            
+            if (registrations.length === 0) {
+                alert('No registrations to generate PDFs for.');
+                btn.disabled = false;
+                btn.textContent = '📥 Download All PDFs';
+                return;
+            }
+            
+            // Generate and download PDFs
+            downloadAllPDFs(tournament, registrations);
+            
+            btn.textContent = '✓ Downloaded!';
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.textContent = '📥 Download All PDFs';
+            }, 2000);
+            
+        } catch (error) {
+            console.error('Error generating PDFs:', error);
+            alert('Error generating PDFs. Please try again.');
+            btn.disabled = false;
+            btn.textContent = '📥 Download All PDFs';
+        }
     });
 }
 
