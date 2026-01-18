@@ -15,12 +15,12 @@
 // These are loaded via script tags, so we check if Firebase is available
 const firebaseConfig = {
     // TODO: Replace with your Firebase config
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyDyDTvRklWi0nrLD7HJ6JB-10PUwdqQi8w",
+  authDomain: "course-caddy-tournament.firebaseapp.com",
+  projectId: "course-caddy-tournament",
+  storageBucket: "course-caddy-tournament.firebasestorage.app",
+  messagingSenderId: "194827108351",
+  appId: "1:194827108351:web:b092254eed2b74ea3df1ca"
 };
 
 // For development/testing without Firebase, we can use mock data
