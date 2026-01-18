@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Caddy - Tournament Edition (Test)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        html, body {
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        
+        body {
+            background-color: #2D5A30;
+            background-image: url('images/golf_course_background.png');
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-attachment: fixed;
+            background-size: cover;
+        }
+        
+        /* Dark overlay */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.35);
+            z-index: 0;
+        }
+        
+        /* Centered content card */
+        .page-container {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+            min-height: 100vh;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 0 80px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        @media (min-width: 992px) {
+            .page-container {
+                margin: 32px auto;
+                border-radius: 16px;
+                min-height: calc(100vh - 64px);
+            }
+        }
+        
+        /* Header */
+        .header {
+            padding: 16px 24px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: #1C1C1E;
+        }
+        
+        .logo-icon {
+            font-size: 1.75rem;
+        }
+        
+        .logo-text {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        
+        /* Hero */
+        .hero {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 32px 24px;
+            text-align: center;
+        }
+        
+        .edition-badge {
+            display: inline-block;
+            background: #007AFF;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 4px 16px;
+            border-radius: 100px;
+            margin-bottom: 24px;
+        }
+        
+        .hero-title {
+            font-size: clamp(2rem, 6vw, 3rem);
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 16px;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.125rem;
+            color: #636366;
+            margin-bottom: 32px;
+            max-width: 500px;
+        }
+        
+        .cta-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #007AFF;
+            color: white;
+            font-size: 1.125rem;
+            font-weight: 600;
+            padding: 16px 32px;
+            border-radius: 12px;
+            text-decoration: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.25s ease;
+        }
+        
+        .cta-button:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+        
+        /* Features */
+        .features {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 64px;
+        }
+        
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        
+        .feature-icon {
+            font-size: 1.75rem;
+        }
+        
+        .feature-text strong {
+            display: block;
+            font-size: 0.9375rem;
+        }
+        
+        .feature-text span {
+            font-size: 0.8125rem;
+            color: #98989D;
+        }
+        
+        /* Footer */
+        .footer {
+            padding: 32px 24px;
+            background: white;
+            border-top: 1px solid #E5E5EA;
+            text-align: center;
+        }
+        
+        .footer-cta {
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        
+        .app-links {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .app-links img {
+            height: 40px;
+        }
+        
+        .copyright {
+            font-size: 0.8125rem;
+            color: #98989D;
+        }
+    </style>
+</head>
+<body>
+    <!-- Dark overlay -->
+    <div class="overlay"></div>
+    
+    <div class="page-container">
+        <!-- Header -->
+        <header class="header">
+            <a href="#" class="logo">
+                <span class="logo-icon">⛳</span>
+                <span class="logo-text">Course Caddy</span>
+            </a>
+        </header>
+
+        <!-- Hero Section -->
+        <main class="hero">
+            <div class="hero-content">
+                <div class="edition-badge">Tournament Edition</div>
+                <h1 class="hero-title">Your Personalized<br>Yardage Card Awaits</h1>
+                <p class="hero-subtitle">
+                    Get custom club distances adjusted for tournament conditions. 
+                    Fill out your info, and your yardage card will be waiting on your cart.
+                </p>
+                <a href="tournaments.html" class="cta-button">
+                    <span>View Tournaments</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </a>
+            </div>
+
+            <!-- Feature highlights -->
+            <div class="features">
+                <div class="feature">
+                    <div class="feature-icon">🌡️</div>
+                    <div class="feature-text">
+                        <strong>Temperature Adjusted</strong>
+                        <span>Hot or cold, we've got you covered</span>
+                    </div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">⛰️</div>
+                    <div class="feature-text">
+                        <strong>Elevation Calculated</strong>
+                        <span>Sea level to mountain courses</span>
+                    </div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📄</div>
+                    <div class="feature-text">
+                        <strong>Print-Ready Card</strong>
+                        <span>USGA compliant yardage book size</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <p class="footer-cta">Want this for every round?</p>
+                <div class="app-links">
+                    <a href="#">
+                        <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="App Store">
+                    </a>
+                    <a href="#">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Google Play">
+                    </a>
+                </div>
+                <p class="copyright">© 2025 Course Caddy LLC. All rights reserved.</p>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>
