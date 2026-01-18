@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Course Caddy Tournament</title>
+    <link rel="stylesheet" href="css/tournament.css">
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+    <style>
+        /* Additional admin-specific styles */
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .admin-tabs {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .admin-tab {
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: var(--color-gray-100);
+            border: none;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-body);
+            font-size: 0.9375rem;
+            font-weight: 500;
+            color: var(--color-gray-600);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        
+        .admin-tab:hover {
+            background: var(--color-gray-200);
+        }
+        
+        .admin-tab.active {
+            background: var(--color-primary);
+            color: var(--color-white);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .tournament-select {
+            width: 100%;
+            padding: var(--spacing-md);
+            font-family: var(--font-body);
+            font-size: 1rem;
+            border: 1px solid var(--color-gray-200);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--spacing-lg);
+            background: var(--color-white);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .stat-card {
+            background: var(--color-gray-50);
+            padding: var(--spacing-md);
+            border-radius: var(--radius-sm);
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+        
+        .stat-label {
+            font-size: 0.8125rem;
+            color: var(--color-gray-500);
+            margin-top: var(--spacing-xs);
+        }
+        
+        .registrations-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .registration-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-md);
+            border-bottom: 1px solid var(--color-gray-100);
+        }
+        
+        .registration-item:last-child {
+            border-bottom: none;
+        }
+        
+        .registration-name {
+            font-weight: 600;
+            color: var(--color-gray-900);
+        }
+        
+        .registration-time {
+            font-size: 0.8125rem;
+            color: var(--color-gray-500);
+        }
+        
+        .registration-clubs {
+            font-size: 0.75rem;
+            color: var(--color-gray-400);
+            margin-top: 2px;
+        }
+        
+        /* Create Tournament Form */
+        .create-form {
+            display: grid;
+            gap: var(--spacing-md);
+        }
+        
+        .create-form .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-md);
+        }
+        
+        .create-form .form-row-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: var(--spacing-md);
+        }
+        
+        @media (max-width: 640px) {
+            .create-form .form-row,
+            .create-form .form-row-3 {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Day conditions card */
+        .day-conditions-card {
+            background: var(--color-white);
+            border: 1px solid var(--color-gray-200);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .day-conditions-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-sm);
+            border-bottom: 1px solid var(--color-gray-100);
+        }
+        
+        .day-conditions-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--color-gray-900);
+        }
+        
+        .day-conditions-date {
+            font-size: 0.875rem;
+            color: var(--color-gray-500);
+        }
+        
+        .conditions-group {
+            background: var(--color-gray-50);
+            padding: var(--spacing-md);
+            border-radius: var(--radius-sm);
+        }
+        
+        .conditions-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--color-gray-700);
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .conditions-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-sm);
+        }
+        
+        .conditions-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: var(--spacing-sm);
+        }
+        
+        @media (max-width: 640px) {
+            .conditions-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Weather toggle */
+        .weather-toggle {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md);
+            background: var(--color-primary-light);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .weather-toggle-label {
+            font-weight: 500;
+            color: var(--color-gray-700);
+        }
+        
+        .weather-toggle input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .btn-fetch-weather {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm) var(--spacing-md);
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--color-white);
+            background: var(--color-primary);
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        
+        .btn-fetch-weather:hover {
+            background: var(--color-primary-hover);
+        }
+        
+        .btn-fetch-weather:disabled {
+            background: var(--color-gray-300);
+            cursor: not-allowed;
+        }
+        
+        .btn-fetch-weather.loading {
+            opacity: 0.7;
+        }
+        
+        /* Location input for weather */
+        .location-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: var(--spacing-md);
+            align-items: end;
+            margin-bottom: var(--spacing-md);
+        }
+        
+        @media (max-width: 640px) {
+            .location-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Days container */
+        #days-conditions-container {
+            margin-top: var(--spacing-md);
+        }
+        
+        .no-days-message {
+            text-align: center;
+            padding: var(--spacing-xl);
+            color: var(--color-gray-500);
+            background: var(--color-gray-50);
+            border-radius: var(--radius-md);
+        }
+        
+        .weather-status {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-left: auto;
+        }
+        
+        .weather-status.fetched {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .weather-status.manual {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            border: 1px solid var(--color-gray-200);
+            border-radius: var(--radius-sm);
+            background: var(--color-white);
+            color: var(--color-gray-700);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        
+        .btn-small:hover {
+            background: var(--color-gray-100);
+            border-color: var(--color-gray-300);
+        }
+        
+        .btn-pdf {
+            background: var(--color-primary);
+            color: var(--color-white);
+            border-color: var(--color-primary);
+        }
+        
+        .btn-pdf:hover {
+            background: var(--color-primary-hover);
+            border-color: var(--color-primary-hover);
+        }
+        
+        .btn-download-all {
+            padding: 10px 20px;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            border: none;
+            border-radius: var(--radius-sm);
+            background: var(--color-primary);
+            color: var(--color-white);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        
+        .btn-download-all:hover {
+            background: var(--color-primary-hover);
+        }
+        
+        .btn-download-all:disabled {
+            background: var(--color-gray-300);
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container" style="background: var(--color-gray-50);">
+        <!-- Header -->
+        <header class="header">
+            <a href="index.html" class="logo">
+                <span class="logo-icon">⛳</span>
+                <span class="logo-text">Course Caddy</span>
+            </a>
+        </header>
+
+        <!-- Admin Content -->
+        <main class="admin-container">
+            <div class="admin-header">
+                <h1 class="page-title">Tournament Admin</h1>
+            </div>
+            
+            <!-- Tabs -->
+            <div class="admin-tabs">
+                <button class="admin-tab active" data-tab="registrations">Registrations</button>
+                <button class="admin-tab" data-tab="create">Create Tournament</button>
+            </div>
+            
+            <!-- Registrations Tab -->
+            <div class="tab-content active" id="registrations-tab">
+                <div class="admin-section">
+                    <label class="form-label" for="tournament-select">Select Tournament</label>
+                    <select id="tournament-select" class="tournament-select">
+                        <option value="">Loading tournaments...</option>
+                    </select>
+                    
+                    <div id="tournament-stats" class="stats-grid" style="display: none;">
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-registrations">0</div>
+                            <div class="stat-label">Registrations</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-pdfs">0</div>
+                            <div class="stat-label">PDFs Generated</div>
+                        </div>
+                    </div>
+                    
+                    <div id="registrations-actions" style="display: none; margin-bottom: var(--spacing-md);">
+                        <button class="btn-download-all" id="download-all-btn">
+                            📥 Download All PDFs
+                        </button>
+                    </div>
+                    
+                    <div id="registrations-list" class="registrations-list">
+                        <p class="text-muted text-center">Select a tournament to view registrations</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Create Tournament Tab -->
+            <div class="tab-content" id="create-tab">
+                <div class="admin-section">
+                    <h2 class="admin-section-title">Create New Tournament</h2>
+                    
+                    <form id="create-tournament-form" class="create-form">
+                        <!-- Basic Info -->
+                        <div class="form-group">
+                            <label class="form-label" for="new-tournament-name">Tournament Name *</label>
+                            <input type="text" id="new-tournament-name" class="form-input" placeholder="Member-Guest Championship" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="new-tournament-course">Course Name *</label>
+                            <input type="text" id="new-tournament-course" class="form-input" placeholder="Hope Valley Country Club" required>
+                        </div>
+                        
+                        <!-- Dates -->
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="new-tournament-start-date">Start Date *</label>
+                                <input type="date" id="new-tournament-start-date" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="new-tournament-end-date">End Date *</label>
+                                <input type="date" id="new-tournament-end-date" class="form-input" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="new-tournament-cutoff">Registration Cutoff *</label>
+                                <input type="datetime-local" id="new-tournament-cutoff" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="new-tournament-elevation">Course Elevation (ft) *</label>
+                                <input type="number" id="new-tournament-elevation" class="form-input" placeholder="500" required>
+                            </div>
+                        </div>
+                        
+                        <!-- Weather Section -->
+                        <h3 style="font-size: 1rem; margin-top: var(--spacing-lg); margin-bottom: var(--spacing-sm);">
+                            🌤️ Tournament Conditions
+                        </h3>
+                        
+                        <!-- Weather Toggle -->
+                        <div class="weather-toggle">
+                            <input type="checkbox" id="use-auto-weather">
+                            <label class="weather-toggle-label" for="use-auto-weather">
+                                Use auto weather (fetch forecast automatically)
+                            </label>
+                        </div>
+                        
+                        <!-- Location for auto weather -->
+                        <div id="location-section" style="display: none;">
+                            <div class="form-group">
+                                <label class="form-label" for="course-address">Course Address</label>
+                                <div class="location-row">
+                                    <input type="text" id="course-address" class="form-input" placeholder="e.g., 3001 Ridge Road, Durham, NC" style="grid-column: span 2;">
+                                    <button type="button" class="btn-fetch-weather" id="lookup-location-btn">
+                                        📍 Lookup Location
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="location-row" style="margin-top: var(--spacing-sm);">
+                                <div class="form-group">
+                                    <label class="form-label" for="course-latitude">Latitude</label>
+                                    <input type="number" id="course-latitude" class="form-input" step="0.0001" placeholder="35.9940" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="course-longitude">Longitude</label>
+                                    <input type="number" id="course-longitude" class="form-input" step="0.0001" placeholder="-78.8986" readonly>
+                                </div>
+                                <button type="button" class="btn-fetch-weather" id="fetch-weather-btn">
+                                    🌡️ Fetch Weather
+                                </button>
+                            </div>
+                            <p id="location-status" style="font-size: 0.75rem; color: var(--color-gray-500); margin-top: var(--spacing-xs);"></p>
+                            <p style="font-size: 0.75rem; color: var(--color-gray-500); margin-bottom: var(--spacing-md);">
+                                💡 Tip: Enter the course address and click "Lookup Location" to auto-fill coordinates and elevation. Weather forecasts are most accurate within 7 days.
+                            </p>
+                        </div>
+                        
+                        <!-- Days Conditions Container -->
+                        <div id="days-conditions-container">
+                            <div class="no-days-message">
+                                Select start and end dates above to configure daily conditions
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="submit-button" style="margin-top: var(--spacing-md);">
+                            Create Tournament
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/firebase-config.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="js/pdf-generator.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>
