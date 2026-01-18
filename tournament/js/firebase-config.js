@@ -170,15 +170,42 @@ async function getRegistrations(tournamentId) {
         return registrations.filter(r => r.tournamentId === tournamentId);
     }
     
-    const snapshot = await db.collection('registrations')
-        .where('tournamentId', '==', tournamentId)
-        .orderBy('submittedAt', 'desc')
-        .get();
-    
-    return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-    }));
+    try {
+        // Try with orderBy first (requires composite index)
+        const snapshot = await db.collection('registrations')
+            .where('tournamentId', '==', tournamentId)
+            .orderBy('submittedAt', 'desc')
+            .get();
+        
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            // Convert Firestore timestamp to ISO string if present
+            submittedAt: doc.data().submittedAt?.toDate?.()?.toISOString() || doc.data().submittedAt
+        }));
+    } catch (error) {
+        // If index doesn't exist, fall back to simple query without orderBy
+        console.warn('Composite index not available, falling back to simple query:', error.message);
+        
+        const snapshot = await db.collection('registrations')
+            .where('tournamentId', '==', tournamentId)
+            .get();
+        
+        const registrations = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            submittedAt: doc.data().submittedAt?.toDate?.()?.toISOString() || doc.data().submittedAt
+        }));
+        
+        // Sort in JavaScript instead
+        registrations.sort((a, b) => {
+            const dateA = a.submittedAt ? new Date(a.submittedAt) : new Date(0);
+            const dateB = b.submittedAt ? new Date(b.submittedAt) : new Date(0);
+            return dateB - dateA; // desc
+        });
+        
+        return registrations;
+    }
 }
 
 // Initialize on load
