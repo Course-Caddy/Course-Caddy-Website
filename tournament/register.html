@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Course Caddy Tournament</title>
+    <link rel="stylesheet" href="css/tournament.css">
+</head>
+<body>
+    <!-- Dark overlay for background -->
+    <div class="overlay"></div>
+    
+    <div class="page-container">
+        <!-- Header -->
+        <header class="header">
+            <a href="index.html" class="logo">
+                <span class="logo-icon">⛳</span>
+                <span class="logo-text">Course Caddy</span>
+            </a>
+        </header>
+
+        <!-- Registration Form -->
+        <main class="form-container">
+            <!-- Tournament Header (populated by JS) -->
+            <div class="form-tournament-header" id="tournament-header">
+                <h1 class="form-tournament-name" id="tournament-name">Loading...</h1>
+                <p class="form-tournament-details" id="tournament-details"></p>
+            </div>
+
+            <form id="registration-form">
+                <!-- Section 1: Player Info -->
+                <section class="form-section">
+                    <h2 class="form-section-title">
+                        <span>👤</span> Player Info
+                    </h2>
+                    <p class="form-section-subtitle">Tell us who you are</p>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="player-name">Full Name *</label>
+                        <input type="text" id="player-name" name="playerName" class="form-input" placeholder="John Smith" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="player-email">Email (optional)</label>
+                        <input type="email" id="player-email" name="playerEmail" class="form-input" placeholder="john@example.com">
+                        <small class="text-muted" style="font-size: 0.75rem; margin-top: 4px; display: block;">
+                            We'll only use this to send you Course Caddy updates
+                        </small>
+                    </div>
+                </section>
+
+                <!-- Section 2: Normal Conditions -->
+                <section class="form-section">
+                    <h2 class="form-section-title">
+                        <span>🌡️</span> Your Normal Conditions
+                    </h2>
+                    <p class="form-section-subtitle">
+                        The typical conditions when you hit these distances (your home course)
+                    </p>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="baseline-temp">Temperature *</label>
+                            <div class="form-input-with-unit">
+                                <input type="number" id="baseline-temp" name="baselineTemp" class="form-input" value="70" min="20" max="120" required>
+                                <span class="form-input-unit">°F</span>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="baseline-elevation">Elevation *</label>
+                            <div class="form-input-with-unit">
+                                <input type="number" id="baseline-elevation" name="baselineElevation" class="form-input" value="0" min="0" max="12000" required>
+                                <span class="form-input-unit">ft</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="baseline-humidity">Humidity</label>
+                        <div class="form-input-with-unit">
+                            <input type="number" id="baseline-humidity" name="baselineHumidity" class="form-input" value="50" min="0" max="100">
+                            <span class="form-input-unit">%</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Section 3: Club Distances -->
+                <section class="form-section">
+                    <h2 class="form-section-title">
+                        <span>🏌️</span> Your Club Distances
+                    </h2>
+                    <p class="form-section-subtitle">
+                        Enter your <strong>carry distances</strong> in yards (not total distance)
+                    </p>
+                    
+                    <div class="clubs-grid" id="clubs-grid">
+                        <!-- Woods -->
+                        <div class="club-input-group">
+                            <div class="club-name">Driver</div>
+                            <input type="number" class="club-distance-input" data-club="Driver" value="250" min="100" max="400">
+                            <div class="club-unit">yards</div>
+                        </div>
+                        <div class="club-input-group">
+                            <div class="club-name">3 Wood</div>
+                            <input type="number" class="club-distance-input" data-club="3 Wood" value="230" min="100" max="350">
+                            <div class="club-unit">yards</div>
+                        </div>
+                        <div class="club-input-group">
+                            <div class="club-name">5 Wood</div>
+                            <input type="number" class="club-distance-input" data-club="5 Wood" value="210" min="100" max="320">
+                            <div class="club-unit">yards</div>
+                        </div>
+                        
+                        <!-- Irons -->
+                        <div class="club-input-group">
+                            <div class="club-name">4 Iron</div>
+                            <input type="number" class="club-distance-input" data-club="4 Iron" value="190" min="80" max="280">
+                            <div class="club-unit">yards</div>
+                        </div>
+                        <div class="club-input-group">
+                            <div class="club-name">5 Iron</div>
+                            <input type="number" class="club-distance-input" data-club="5 Iron" value="180" min="80" max="260">
+                            <div class="club-unit">yards</div>
+                        </div>
+                        <div class="club-input-group">
+                            <div class="club-name">6 Iron</div>
+                            <input type="number" class="club-distance-input" data-club="6 Iron" value="170" min="80" max="240">
+                            <div class="club-unit">yards</div>
+                        </div>
+                        <div class="club-input-group">
+                            <div class="club-name">7 Iron</div>
+                            <input type="number" class="club-distance-input" data-club="7 Iron" value="160" min="70" max="220">
+                            <div class="club-unit">yards</div>
+                        </div>
+                        <div class="club-input-group">
+                            <div class="club-name">8 Iron</div>
+                            <input type="number" class="club-distance-input" data-club="8 Iron" value="150" min="70" max="200">
+                            <div class="club-unit">yards</div>
+                        </div>
+                        <div class="club-input-group">
+                            <div class="club-name">9 Iron</div>
+                            <input type="number" class="club-distance-input" data-club="9 Iron" value="140" min="60" max="180">
+                            <div class="club-unit">yards</div>
+                        </div>
+                        
+                        <!-- Wedges -->
+                        <div class="club-input-group">
+                            <div class="club-name">PW</div>
+                            <input type="number" class="club-distance-input" data-club="PW" value="130" min="50" max="170">
+                            <div class="club-unit">yards</div>
+                        </div>
+                        <div class="club-input-group">
+                            <div class="club-name">GW</div>
+                            <input type="number" class="club-distance-input" data-club="GW" value="110" min="40" max="150">
+                            <div class="club-unit">yards</div>
+                        </div>
+                        <div class="club-input-group">
+                            <div class="club-name">SW</div>
+                            <input type="number" class="club-distance-input" data-club="SW" value="90" min="30" max="130">
+                            <div class="club-unit">yards</div>
+                        </div>
+                        <div class="club-input-group">
+                            <div class="club-name">LW</div>
+                            <input type="number" class="club-distance-input" data-club="LW" value="70" min="20" max="110">
+                            <div class="club-unit">yards</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Submit Button -->
+                <button type="submit" class="submit-button" id="submit-btn">
+                    Submit Registration
+                </button>
+                
+                <p class="text-center text-muted mt-md" style="font-size: 0.8125rem;">
+                    Your personalized yardage card will be waiting on your cart
+                </p>
+            </form>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <p class="copyright">© 2025 Course Caddy LLC. All rights reserved.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="js/firebase-config.js"></script>
+    <script src="js/register.js"></script>
+</body>
+</html>
