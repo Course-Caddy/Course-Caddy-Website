@@ -24,7 +24,7 @@ const firebaseConfig = {
 };
 
 // For development/testing without Firebase, we can use mock data
-const USE_MOCK_DATA = true; // Set to false when Firebase is configured
+const USE_MOCK_DATA = false; // Set to false when Firebase is configured
 
 // Mock tournaments data for testing
 const MOCK_TOURNAMENTS = [
