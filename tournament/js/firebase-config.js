@@ -67,6 +67,8 @@ let storage = null;
 let auth = null;
 
 function initializeFirebase() {
+    console.log('initializeFirebase called, USE_MOCK_DATA =', USE_MOCK_DATA);
+
     if (USE_MOCK_DATA) {
         console.log('Using mock data - Firebase not initialized');
         return;
@@ -81,9 +83,14 @@ function initializeFirebase() {
         return;
     }
 
+    console.log('Firebase SDK loaded, typeof firebase.auth =', typeof firebase.auth);
+
     // Initialize Firebase
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
+        console.log('Firebase app initialized');
+    } else {
+        console.log('Firebase app already initialized');
     }
 
     db = firebase.firestore();
@@ -92,7 +99,7 @@ function initializeFirebase() {
     // Only initialize auth if the auth SDK is loaded
     if (typeof firebase.auth === 'function') {
         auth = firebase.auth();
-        console.log('Firebase initialized with Auth');
+        console.log('Firebase initialized with Auth, auth =', auth);
     } else {
         console.log('Firebase initialized (Auth SDK not loaded)');
     }
@@ -225,6 +232,8 @@ async function getRegistrations(tournamentId) {
  * @returns {Promise<Object>} User credential
  */
 async function signIn(email, password) {
+    console.log('signIn called, auth =', auth, ', USE_MOCK_DATA =', USE_MOCK_DATA);
+
     if (USE_MOCK_DATA) {
         // Mock auth for testing
         if (email === 'admin@coursecaddy.com' && password === 'admin123') {
@@ -234,7 +243,14 @@ async function signIn(email, password) {
     }
 
     if (!auth) {
-        throw new Error('Authentication not available');
+        console.error('Auth is null/undefined. Attempting to reinitialize...');
+        // Try to initialize auth if it wasn't done
+        if (typeof firebase !== 'undefined' && typeof firebase.auth === 'function') {
+            auth = firebase.auth();
+            console.log('Auth reinitialized:', auth);
+        } else {
+            throw new Error('Authentication not available - Firebase Auth SDK not loaded');
+        }
     }
 
     return await auth.signInWithEmailAndPassword(email, password);
