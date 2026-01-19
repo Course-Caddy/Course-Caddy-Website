@@ -58,28 +58,26 @@ async function loadLogoImage() {
 }
 
 /**
- * Generate QR code as data URL
+ * Generate QR code as data URL using qrcode-generator library
  * @param {string} url - URL to encode
- * @param {number} size - Size of QR code in pixels
- * @returns {Promise<string>} Base64 data URL
+ * @param {number} cellSize - Size of each QR cell (default 4)
+ * @returns {string} Base64 data URL
  */
-async function generateQRCode(url, size = 200) {
-    if (typeof QRCode === 'undefined') {
-        console.error('QRCode library not loaded');
+function generateQRCode(url, cellSize = 4) {
+    // Check if qrcode-generator library is loaded (it exposes 'qrcode' function)
+    if (typeof qrcode === 'undefined') {
+        console.error('qrcode-generator library not loaded');
         return null;
     }
 
     try {
-        // Use QRCode.toDataURL from the qrcode npm package (soldair/node-qrcode)
-        const dataUrl = await QRCode.toDataURL(url, {
-            width: size,
-            margin: 1,
-            color: {
-                dark: '#000000',
-                light: '#ffffff'
-            },
-            errorCorrectionLevel: 'M'
-        });
+        // Create QR code with type 0 (auto-detect) and error correction level M
+        const qr = qrcode(0, 'M');
+        qr.addData(url);
+        qr.make();
+
+        // Generate data URL with specified cell size and margin of 2
+        const dataUrl = qr.createDataURL(cellSize, 2);
         console.log('QR code generated successfully for:', url.substring(0, 50) + '...');
         return dataUrl;
     } catch (error) {
@@ -552,17 +550,22 @@ function generatePlayerPDF(tournament, registration, logoData, appStoreQR, playS
 async function loadPDFAssets() {
     console.log('Loading PDF assets...');
 
-    const [logoData, appStoreQR, playStoreQR] = await Promise.all([
-        loadLogoImage(),
-        generateQRCode(APP_STORE_URL),
-        generateQRCode(PLAY_STORE_URL)
-    ]);
+    // Load logo asynchronously
+    const logoData = await loadLogoImage();
+
+    // Generate QR codes synchronously (qrcode-generator is sync)
+    const appStoreQR = generateQRCode(APP_STORE_URL, 4);
+    const playStoreQR = generateQRCode(PLAY_STORE_URL, 4);
 
     console.log('PDF assets loaded:', {
         logoLoaded: !!logoData,
         appStoreQRLoaded: !!appStoreQR,
         playStoreQRLoaded: !!playStoreQR
     });
+
+    if (!appStoreQR || !playStoreQR) {
+        console.error('Failed to generate QR codes. Check if qrcode-generator library is loaded.');
+    }
 
     return { logoData, appStoreQR, playStoreQR };
 }
