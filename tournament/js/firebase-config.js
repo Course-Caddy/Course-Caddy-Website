@@ -94,7 +94,12 @@ function initializeFirebase() {
     }
 
     db = firebase.firestore();
-    storage = firebase.storage();
+
+    // Only initialize storage if the storage SDK is loaded
+    if (typeof firebase.storage === 'function') {
+        storage = firebase.storage();
+        console.log('Firebase Storage initialized');
+    }
 
     // Only initialize auth if the auth SDK is loaded
     if (typeof firebase.auth === 'function') {
