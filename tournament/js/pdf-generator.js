@@ -427,18 +427,18 @@ function drawYardageCard(doc, tournament, registration, dayConditions, x, y, day
     currentY += 4;
 
     const colClub = x + margin;
-    const colMorn = x + margin + 70;
-    const colAftn = x + margin + 120;
-    const colEve = x + margin + 170;
+    const colMorn = x + margin + 65;
+    const colAftn = x + margin + 125;
+    const colEve = x + margin + 195;
 
     // Header row
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(...COLOR_TEXT_DARK);
     doc.text('Club', colClub, currentY + 12);
-    doc.text('Morn', colMorn, currentY + 12);
-    doc.text('Aftn', colAftn, currentY + 12);
-    doc.text('Eve', colEve, currentY + 12);
+    doc.text('Morning', colMorn, currentY + 12);
+    doc.text('Afternoon', colAftn, currentY + 12);
+    doc.text('Evening', colEve, currentY + 12);
     currentY += 14;
 
     // Temperature row under header
