@@ -783,27 +783,24 @@ async function deletePlayer(registration) {
 
     try {
         if (USE_MOCK_DATA) {
-            // Remove from mock data
-            const regIndex = MOCK_REGISTRATIONS.findIndex(r => r.id === registration.id);
-            if (regIndex !== -1) {
-                MOCK_REGISTRATIONS.splice(regIndex, 1);
-            }
+            // Remove from mock data (localStorage)
+            const registrations = JSON.parse(localStorage.getItem('mockRegistrations') || '[]');
+            const filtered = registrations.filter(r => r.id !== registration.id);
+            localStorage.setItem('mockRegistrations', JSON.stringify(filtered));
             alert(`${playerName} has been deleted.`);
             await loadRegistrations(selectedTournamentId);
         } else {
-            // Delete from Firebase
-            await db.collection('tournaments')
-                .doc(selectedTournamentId)
-                .collection('registrations')
-                .doc(registration.id)
-                .delete();
+            // Delete from Firebase - registrations are in top-level 'registrations' collection
+            console.log('Deleting registration with ID:', registration.id);
+            await db.collection('registrations').doc(registration.id).delete();
+            console.log('Registration deleted successfully');
 
             alert(`${playerName} has been deleted.`);
             await loadRegistrations(selectedTournamentId);
         }
     } catch (error) {
         console.error('Error deleting player:', error);
-        alert('Error deleting player. Please try again.');
+        alert(`Error deleting player: ${error.message}`);
     }
 }
 
@@ -881,36 +878,41 @@ function setupDeleteTournamentButton() {
  */
 async function deleteTournament(tournamentId) {
     if (USE_MOCK_DATA) {
-        // Remove from mock data
-        const tournamentIndex = MOCK_TOURNAMENTS.findIndex(t => t.id === tournamentId);
-        if (tournamentIndex !== -1) {
-            MOCK_TOURNAMENTS.splice(tournamentIndex, 1);
-        }
-        // Remove associated registrations
-        const regIndices = [];
-        MOCK_REGISTRATIONS.forEach((r, i) => {
-            if (r.tournamentId === tournamentId) {
-                regIndices.push(i);
-            }
-        });
-        // Remove in reverse order to maintain indices
-        regIndices.reverse().forEach(i => MOCK_REGISTRATIONS.splice(i, 1));
+        // Remove from mock data (localStorage for registrations)
+        const registrations = JSON.parse(localStorage.getItem('mockRegistrations') || '[]');
+        const filtered = registrations.filter(r => r.tournamentId !== tournamentId);
+        localStorage.setItem('mockRegistrations', JSON.stringify(filtered));
+        // Note: MOCK_TOURNAMENTS is in-memory only, changes won't persist on refresh
     } else {
-        // First, delete all registrations in the subcollection
-        const registrationsRef = db.collection('tournaments')
-            .doc(tournamentId)
-            .collection('registrations');
+        console.log('Deleting tournament:', tournamentId);
 
-        const registrationsSnapshot = await registrationsRef.get();
+        // First, delete all registrations for this tournament
+        // Registrations are in top-level 'registrations' collection with tournamentId field
+        const registrationsSnapshot = await db.collection('registrations')
+            .where('tournamentId', '==', tournamentId)
+            .get();
 
-        // Delete registrations in batches
-        const batch = db.batch();
-        registrationsSnapshot.docs.forEach(doc => {
-            batch.delete(doc.ref);
-        });
-        await batch.commit();
+        console.log(`Found ${registrationsSnapshot.docs.length} registrations to delete`);
+
+        if (registrationsSnapshot.docs.length > 0) {
+            // Delete registrations in batches (Firestore batch limit is 500)
+            const batchSize = 500;
+            const docs = registrationsSnapshot.docs;
+
+            for (let i = 0; i < docs.length; i += batchSize) {
+                const batch = db.batch();
+                const chunk = docs.slice(i, i + batchSize);
+                chunk.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                await batch.commit();
+                console.log(`Deleted batch of ${chunk.length} registrations`);
+            }
+        }
 
         // Then delete the tournament document
+        console.log('Deleting tournament document');
         await db.collection('tournaments').doc(tournamentId).delete();
+        console.log('Tournament deleted successfully');
     }
 }
