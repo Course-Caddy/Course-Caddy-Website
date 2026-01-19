@@ -64,29 +64,32 @@ const MOCK_TOURNAMENTS = [
 // Initialize Firebase (when not using mock data)
 let db = null;
 let storage = null;
+let auth = null;
 
 function initializeFirebase() {
     if (USE_MOCK_DATA) {
         console.log('Using mock data - Firebase not initialized');
         return;
     }
-    
+
     // Check if Firebase SDK is loaded
     if (typeof firebase === 'undefined') {
         console.error('Firebase SDK not loaded. Add the following to your HTML:');
         console.error('<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>');
         console.error('<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>');
+        console.error('<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>');
         return;
     }
-    
+
     // Initialize Firebase
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
-    
+
     db = firebase.firestore();
     storage = firebase.storage();
-    
+    auth = firebase.auth();
+
     console.log('Firebase initialized successfully');
 }
 
@@ -206,6 +209,64 @@ async function getRegistrations(tournamentId) {
         
         return registrations;
     }
+}
+
+// Auth Functions
+
+/**
+ * Sign in with email and password
+ * @param {string} email
+ * @param {string} password
+ * @returns {Promise<Object>} User credential
+ */
+async function signIn(email, password) {
+    if (USE_MOCK_DATA) {
+        // Mock auth for testing
+        if (email === 'admin@coursecaddy.com' && password === 'admin123') {
+            return { user: { email: email } };
+        }
+        throw new Error('Invalid email or password');
+    }
+
+    return await auth.signInWithEmailAndPassword(email, password);
+}
+
+/**
+ * Sign out current user
+ * @returns {Promise<void>}
+ */
+async function signOut() {
+    if (USE_MOCK_DATA) {
+        return;
+    }
+
+    return await auth.signOut();
+}
+
+/**
+ * Listen for auth state changes
+ * @param {Function} callback - Called with user object or null
+ */
+function onAuthStateChanged(callback) {
+    if (USE_MOCK_DATA) {
+        // In mock mode, always call with null (not authenticated)
+        setTimeout(() => callback(null), 100);
+        return () => {};
+    }
+
+    return auth.onAuthStateChanged(callback);
+}
+
+/**
+ * Get current user
+ * @returns {Object|null} Current user or null
+ */
+function getCurrentUser() {
+    if (USE_MOCK_DATA) {
+        return null;
+    }
+
+    return auth.currentUser;
 }
 
 // Initialize on load

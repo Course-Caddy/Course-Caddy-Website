@@ -6,38 +6,144 @@
 let tournaments = [];
 let selectedTournamentId = null;
 let tournamentDays = []; // Array of dates for current tournament being created
+let currentUser = null;
 
 document.addEventListener('DOMContentLoaded', async function() {
+    // Set up login form
+    setupLoginForm();
+
+    // Set up sign out button
+    setupSignOutButton();
+
+    // Listen for auth state changes
+    onAuthStateChanged(async (user) => {
+        currentUser = user;
+
+        if (user) {
+            // User is signed in - show admin content
+            document.getElementById('login-container').style.display = 'none';
+            document.getElementById('admin-content').style.display = 'block';
+            document.getElementById('user-email').textContent = user.email;
+
+            // Initialize admin functionality
+            await initializeAdmin();
+        } else {
+            // User is signed out - show login form
+            document.getElementById('login-container').style.display = 'flex';
+            document.getElementById('admin-content').style.display = 'none';
+            document.getElementById('user-email').textContent = '';
+        }
+    });
+});
+
+/**
+ * Initialize admin functionality after authentication
+ */
+async function initializeAdmin() {
     // Set up tabs
     setupTabs();
-    
+
     // Load tournaments
     await loadTournaments();
-    
+
     // Set up tournament select
     setupTournamentSelect();
-    
+
     // Set up create form
     setupCreateForm();
-    
+
     // Set up download button
     setupDownloadButton();
-    
+
     // Set up date change listeners
     setupDateListeners();
-    
+
     // Set up weather toggle
     setupWeatherToggle();
-    
+
     // Set up location lookup button
     setupLocationLookup();
-    
+
     // Set up fetch weather button
     setupFetchWeatherButton();
 
     // Set up delete tournament button
     setupDeleteTournamentButton();
-});
+}
+
+/**
+ * Set up login form
+ */
+function setupLoginForm() {
+    const form = document.getElementById('login-form');
+    const loginBtn = document.getElementById('login-btn');
+    const errorEl = document.getElementById('login-error');
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value;
+
+        if (!email || !password) {
+            errorEl.textContent = 'Please enter email and password.';
+            return;
+        }
+
+        // Clear previous error
+        errorEl.textContent = '';
+
+        // Disable button while signing in
+        loginBtn.disabled = true;
+        loginBtn.textContent = 'Signing in...';
+
+        try {
+            await signIn(email, password);
+            // Auth state listener will handle the UI update
+        } catch (error) {
+            console.error('Sign in error:', error);
+
+            // Display user-friendly error messages
+            let errorMessage = 'An error occurred. Please try again.';
+
+            if (error.code === 'auth/user-not-found') {
+                errorMessage = 'No account found with this email.';
+            } else if (error.code === 'auth/wrong-password') {
+                errorMessage = 'Incorrect password.';
+            } else if (error.code === 'auth/invalid-email') {
+                errorMessage = 'Invalid email address.';
+            } else if (error.code === 'auth/too-many-requests') {
+                errorMessage = 'Too many failed attempts. Please try again later.';
+            } else if (error.code === 'auth/invalid-credential') {
+                errorMessage = 'Invalid email or password.';
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+
+            errorEl.textContent = errorMessage;
+        } finally {
+            loginBtn.disabled = false;
+            loginBtn.textContent = 'Sign In';
+        }
+    });
+}
+
+/**
+ * Set up sign out button
+ */
+function setupSignOutButton() {
+    const signOutBtn = document.getElementById('sign-out-btn');
+
+    signOutBtn.addEventListener('click', async function() {
+        try {
+            await signOut();
+            // Auth state listener will handle the UI update
+        } catch (error) {
+            console.error('Sign out error:', error);
+            alert('Error signing out. Please try again.');
+        }
+    });
+}
 
 /**
  * Set up tab switching
