@@ -64,56 +64,28 @@ async function loadLogoImage() {
  * @returns {Promise<string>} Base64 data URL
  */
 async function generateQRCode(url, size = 200) {
-    return new Promise((resolve) => {
-        if (typeof QRCode === 'undefined') {
-            console.error('QRCode library not loaded');
-            resolve(null);
-            return;
-        }
+    if (typeof QRCode === 'undefined') {
+        console.error('QRCode library not loaded');
+        return null;
+    }
 
-        try {
-            // Create a temporary div to hold the QR code
-            const tempDiv = document.createElement('div');
-            tempDiv.style.display = 'none';
-            document.body.appendChild(tempDiv);
-
-            // Use QRCode constructor (works with qrcode.min.js)
-            const qr = new QRCode(tempDiv, {
-                text: url,
-                width: size,
-                height: size,
-                colorDark: '#000000',
-                colorLight: '#ffffff',
-                correctLevel: QRCode.CorrectLevel.M
-            });
-
-            // Wait a bit for the QR code to render, then extract the image
-            setTimeout(() => {
-                const canvas = tempDiv.querySelector('canvas');
-                const img = tempDiv.querySelector('img');
-
-                let dataUrl = null;
-                if (canvas) {
-                    dataUrl = canvas.toDataURL('image/png');
-                } else if (img && img.src) {
-                    dataUrl = img.src;
-                }
-
-                // Clean up
-                document.body.removeChild(tempDiv);
-
-                if (dataUrl) {
-                    resolve(dataUrl);
-                } else {
-                    console.error('Could not extract QR code image');
-                    resolve(null);
-                }
-            }, 100);
-        } catch (error) {
-            console.error('QR code generation error:', error);
-            resolve(null);
-        }
-    });
+    try {
+        // Use QRCode.toDataURL from the qrcode npm package (soldair/node-qrcode)
+        const dataUrl = await QRCode.toDataURL(url, {
+            width: size,
+            margin: 1,
+            color: {
+                dark: '#000000',
+                light: '#ffffff'
+            },
+            errorCorrectionLevel: 'M'
+        });
+        console.log('QR code generated successfully for:', url.substring(0, 50) + '...');
+        return dataUrl;
+    } catch (error) {
+        console.error('QR code generation error:', error);
+        return null;
+    }
 }
 
 /**
@@ -578,11 +550,19 @@ function generatePlayerPDF(tournament, registration, logoData, appStoreQR, playS
  * @returns {Promise<Object>} Object with logoData, appStoreQR, playStoreQR
  */
 async function loadPDFAssets() {
+    console.log('Loading PDF assets...');
+
     const [logoData, appStoreQR, playStoreQR] = await Promise.all([
         loadLogoImage(),
         generateQRCode(APP_STORE_URL),
         generateQRCode(PLAY_STORE_URL)
     ]);
+
+    console.log('PDF assets loaded:', {
+        logoLoaded: !!logoData,
+        appStoreQRLoaded: !!appStoreQR,
+        playStoreQRLoaded: !!playStoreQR
+    });
 
     return { logoData, appStoreQR, playStoreQR };
 }
