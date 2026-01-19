@@ -269,5 +269,5 @@ function getCurrentUser() {
     return auth.currentUser;
 }
 
-// Initialize on load
-document.addEventListener('DOMContentLoaded', initializeFirebase);
+// Initialize Firebase immediately (scripts are loaded at end of body)
+initializeFirebase();
