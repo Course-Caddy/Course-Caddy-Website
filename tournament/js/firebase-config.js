@@ -67,8 +67,6 @@ let storage = null;
 let auth = null;
 
 function initializeFirebase() {
-    console.log('initializeFirebase called, USE_MOCK_DATA =', USE_MOCK_DATA);
-
     if (USE_MOCK_DATA) {
         console.log('Using mock data - Firebase not initialized');
         return;
@@ -76,21 +74,13 @@ function initializeFirebase() {
 
     // Check if Firebase SDK is loaded
     if (typeof firebase === 'undefined') {
-        console.error('Firebase SDK not loaded. Add the following to your HTML:');
-        console.error('<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>');
-        console.error('<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>');
-        console.error('<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>');
+        console.error('Firebase SDK not loaded');
         return;
     }
-
-    console.log('Firebase SDK loaded, typeof firebase.auth =', typeof firebase.auth);
 
     // Initialize Firebase
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
-        console.log('Firebase app initialized');
-    } else {
-        console.log('Firebase app already initialized');
     }
 
     db = firebase.firestore();
@@ -98,16 +88,14 @@ function initializeFirebase() {
     // Only initialize storage if the storage SDK is loaded
     if (typeof firebase.storage === 'function') {
         storage = firebase.storage();
-        console.log('Firebase Storage initialized');
     }
 
     // Only initialize auth if the auth SDK is loaded
     if (typeof firebase.auth === 'function') {
         auth = firebase.auth();
-        console.log('Firebase initialized with Auth, auth =', auth);
-    } else {
-        console.log('Firebase initialized (Auth SDK not loaded)');
     }
+
+    console.log('Firebase initialized');
 }
 
 // API Functions
@@ -237,8 +225,6 @@ async function getRegistrations(tournamentId) {
  * @returns {Promise<Object>} User credential
  */
 async function signIn(email, password) {
-    console.log('signIn called, auth =', auth, ', USE_MOCK_DATA =', USE_MOCK_DATA);
-
     if (USE_MOCK_DATA) {
         // Mock auth for testing
         if (email === 'admin@coursecaddy.com' && password === 'admin123') {
@@ -248,13 +234,11 @@ async function signIn(email, password) {
     }
 
     if (!auth) {
-        console.error('Auth is null/undefined. Attempting to reinitialize...');
         // Try to initialize auth if it wasn't done
         if (typeof firebase !== 'undefined' && typeof firebase.auth === 'function') {
             auth = firebase.auth();
-            console.log('Auth reinitialized:', auth);
         } else {
-            throw new Error('Authentication not available - Firebase Auth SDK not loaded');
+            throw new Error('Authentication not available');
         }
     }
 
