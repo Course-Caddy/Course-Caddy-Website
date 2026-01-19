@@ -34,6 +34,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // Set up fetch weather button
     setupFetchWeatherButton();
+
+    // Set up delete tournament button
+    setupDeleteTournamentButton();
 });
 
 /**
@@ -95,15 +98,19 @@ function setupTournamentSelect() {
     
     select.addEventListener('change', async function() {
         selectedTournamentId = this.value;
-        
+
         if (!selectedTournamentId) {
             document.getElementById('tournament-stats').style.display = 'none';
             document.getElementById('registrations-actions').style.display = 'none';
-            document.getElementById('registrations-list').innerHTML = 
+            document.getElementById('danger-zone').style.display = 'none';
+            document.getElementById('registrations-list').innerHTML =
                 '<p class="text-muted text-center">Select a tournament to view registrations</p>';
             return;
         }
-        
+
+        // Show danger zone when a tournament is selected
+        document.getElementById('danger-zone').style.display = 'block';
+
         await loadRegistrations(selectedTournamentId);
     });
 }
@@ -154,41 +161,50 @@ async function loadRegistrations(tournamentId) {
 function createRegistrationItem(registration) {
     const item = document.createElement('div');
     item.className = 'registration-item';
-    
-    const submittedAt = registration.submittedAt 
+
+    const submittedAt = registration.submittedAt
         ? formatDateTime(new Date(registration.submittedAt))
         : 'Unknown';
-    
+
     const clubCount = registration.clubs ? registration.clubs.length : 0;
-    
+
     item.innerHTML = `
         <div>
             <div class="registration-name">${escapeHtml(registration.playerName)}</div>
             <div class="registration-time">Submitted: ${submittedAt}</div>
             <div class="registration-clubs">${clubCount} clubs • ${registration.baselineTemp}°F • ${registration.baselineElevation}ft elevation</div>
         </div>
-        <div style="display: flex; gap: 8px;">
+        <div style="display: flex; gap: 8px; align-items: center;">
             <button class="btn-small btn-pdf" title="Download PDF">
                 📄 PDF
             </button>
             <button class="btn-small btn-view" title="View Details">
                 View
             </button>
+            <button class="btn-delete-icon" title="Delete Player">
+                🗑️
+            </button>
         </div>
     `;
-    
+
     // Add click handler for PDF button
     const pdfBtn = item.querySelector('.btn-pdf');
     pdfBtn.addEventListener('click', () => {
         downloadIndividualPDF(registration);
     });
-    
+
     // Add click handler for View button
     const viewBtn = item.querySelector('.btn-view');
     viewBtn.addEventListener('click', () => {
         viewRegistration(registration);
     });
-    
+
+    // Add click handler for Delete button
+    const deleteBtn = item.querySelector('.btn-delete-icon');
+    deleteBtn.addEventListener('click', () => {
+        deletePlayer(registration);
+    });
+
     return item;
 }
 
@@ -740,11 +756,161 @@ function formatDateTime(date) {
 
 /**
  * Escape HTML to prevent XSS
- * @param {string} text 
+ * @param {string} text
  * @returns {string}
  */
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+/**
+ * Delete a player registration
+ * @param {Object} registration
+ */
+async function deletePlayer(registration) {
+    const playerName = registration.playerName;
+
+    // Confirm deletion
+    const confirmed = confirm(
+        `Are you sure you want to delete ${playerName}?\n\nThis cannot be undone.`
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        if (USE_MOCK_DATA) {
+            // Remove from mock data
+            const regIndex = MOCK_REGISTRATIONS.findIndex(r => r.id === registration.id);
+            if (regIndex !== -1) {
+                MOCK_REGISTRATIONS.splice(regIndex, 1);
+            }
+            alert(`${playerName} has been deleted.`);
+            await loadRegistrations(selectedTournamentId);
+        } else {
+            // Delete from Firebase
+            await db.collection('tournaments')
+                .doc(selectedTournamentId)
+                .collection('registrations')
+                .doc(registration.id)
+                .delete();
+
+            alert(`${playerName} has been deleted.`);
+            await loadRegistrations(selectedTournamentId);
+        }
+    } catch (error) {
+        console.error('Error deleting player:', error);
+        alert('Error deleting player. Please try again.');
+    }
+}
+
+/**
+ * Set up delete tournament button
+ */
+function setupDeleteTournamentButton() {
+    const btn = document.getElementById('delete-tournament-btn');
+
+    btn.addEventListener('click', async function() {
+        if (!selectedTournamentId) {
+            alert('Please select a tournament first.');
+            return;
+        }
+
+        const tournament = tournaments.find(t => t.id === selectedTournamentId);
+        if (!tournament) {
+            alert('Tournament not found.');
+            return;
+        }
+
+        // Confirm deletion with tournament name
+        const confirmed = confirm(
+            `Are you sure you want to delete "${tournament.name}" and ALL registered players?\n\nThis cannot be undone.`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        // Double confirm for extra safety
+        const doubleConfirmed = confirm(
+            `FINAL WARNING: You are about to permanently delete:\n\n` +
+            `• Tournament: ${tournament.name}\n` +
+            `• All player registrations\n\n` +
+            `Type OK to confirm deletion.`
+        );
+
+        if (!doubleConfirmed) {
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = '⏳ Deleting...';
+
+        try {
+            await deleteTournament(selectedTournamentId);
+
+            alert(`"${tournament.name}" has been deleted.`);
+
+            // Reset selection and reload tournaments
+            selectedTournamentId = null;
+            document.getElementById('tournament-select').value = '';
+            document.getElementById('tournament-stats').style.display = 'none';
+            document.getElementById('registrations-actions').style.display = 'none';
+            document.getElementById('danger-zone').style.display = 'none';
+            document.getElementById('registrations-list').innerHTML =
+                '<p class="text-muted text-center">Select a tournament to view registrations</p>';
+
+            await loadTournaments();
+
+        } catch (error) {
+            console.error('Error deleting tournament:', error);
+            alert('Error deleting tournament. Please try again.');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '🗑️ Delete Tournament';
+        }
+    });
+}
+
+/**
+ * Delete a tournament and all its registrations
+ * @param {string} tournamentId
+ */
+async function deleteTournament(tournamentId) {
+    if (USE_MOCK_DATA) {
+        // Remove from mock data
+        const tournamentIndex = MOCK_TOURNAMENTS.findIndex(t => t.id === tournamentId);
+        if (tournamentIndex !== -1) {
+            MOCK_TOURNAMENTS.splice(tournamentIndex, 1);
+        }
+        // Remove associated registrations
+        const regIndices = [];
+        MOCK_REGISTRATIONS.forEach((r, i) => {
+            if (r.tournamentId === tournamentId) {
+                regIndices.push(i);
+            }
+        });
+        // Remove in reverse order to maintain indices
+        regIndices.reverse().forEach(i => MOCK_REGISTRATIONS.splice(i, 1));
+    } else {
+        // First, delete all registrations in the subcollection
+        const registrationsRef = db.collection('tournaments')
+            .doc(tournamentId)
+            .collection('registrations');
+
+        const registrationsSnapshot = await registrationsRef.get();
+
+        // Delete registrations in batches
+        const batch = db.batch();
+        registrationsSnapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        await batch.commit();
+
+        // Then delete the tournament document
+        await db.collection('tournaments').doc(tournamentId).delete();
+    }
 }

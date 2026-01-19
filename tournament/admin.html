@@ -350,6 +350,84 @@
             background: var(--color-gray-300);
             cursor: not-allowed;
         }
+
+        /* Delete buttons */
+        .btn-delete {
+            background: transparent;
+            color: #dc3545;
+            border: 1px solid #dc3545;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .btn-delete:hover {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-delete-icon {
+            background: transparent;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            padding: 4px;
+            font-size: 1rem;
+            opacity: 0.6;
+            transition: opacity var(--transition-fast);
+        }
+
+        .btn-delete-icon:hover {
+            opacity: 1;
+        }
+
+        /* Danger Zone */
+        .danger-zone {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg);
+            border: 1px solid #dc3545;
+            border-radius: var(--radius-md);
+            background: #fff5f5;
+        }
+
+        .danger-zone-title {
+            color: #dc3545;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: var(--spacing-sm);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .danger-zone-description {
+            color: var(--color-gray-600);
+            font-size: 0.875rem;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: var(--spacing-sm) var(--spacing-md);
+            font-size: 0.9375rem;
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-danger:disabled {
+            background: var(--color-gray-300);
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -401,6 +479,19 @@
                     
                     <div id="registrations-list" class="registrations-list">
                         <p class="text-muted text-center">Select a tournament to view registrations</p>
+                    </div>
+
+                    <!-- Danger Zone -->
+                    <div id="danger-zone" class="danger-zone" style="display: none;">
+                        <div class="danger-zone-title">
+                            ⚠️ Danger Zone
+                        </div>
+                        <p class="danger-zone-description">
+                            Permanently delete this tournament and all registered players. This action cannot be undone.
+                        </p>
+                        <button id="delete-tournament-btn" class="btn-danger">
+                            🗑️ Delete Tournament
+                        </button>
                     </div>
                 </div>
             </div>
