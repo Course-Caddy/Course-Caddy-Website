@@ -88,9 +88,14 @@ function initializeFirebase() {
 
     db = firebase.firestore();
     storage = firebase.storage();
-    auth = firebase.auth();
 
-    console.log('Firebase initialized successfully');
+    // Only initialize auth if the auth SDK is loaded
+    if (typeof firebase.auth === 'function') {
+        auth = firebase.auth();
+        console.log('Firebase initialized with Auth');
+    } else {
+        console.log('Firebase initialized (Auth SDK not loaded)');
+    }
 }
 
 // API Functions
@@ -228,6 +233,10 @@ async function signIn(email, password) {
         throw new Error('Invalid email or password');
     }
 
+    if (!auth) {
+        throw new Error('Authentication not available');
+    }
+
     return await auth.signInWithEmailAndPassword(email, password);
 }
 
@@ -238,6 +247,10 @@ async function signIn(email, password) {
 async function signOut() {
     if (USE_MOCK_DATA) {
         return;
+    }
+
+    if (!auth) {
+        throw new Error('Authentication not available');
     }
 
     return await auth.signOut();
@@ -254,6 +267,12 @@ function onAuthStateChanged(callback) {
         return () => {};
     }
 
+    if (!auth) {
+        // Auth not available, call with null
+        setTimeout(() => callback(null), 100);
+        return () => {};
+    }
+
     return auth.onAuthStateChanged(callback);
 }
 
@@ -263,6 +282,10 @@ function onAuthStateChanged(callback) {
  */
 function getCurrentUser() {
     if (USE_MOCK_DATA) {
+        return null;
+    }
+
+    if (!auth) {
         return null;
     }
 
