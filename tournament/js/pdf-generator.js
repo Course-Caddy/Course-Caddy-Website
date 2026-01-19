@@ -25,8 +25,10 @@ const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.course
 // Logo path
 const LOGO_PATH = 'images/course_caddy_icon_300.png';
 
-// Cached logo data
+// Cached assets
 let cachedLogoData = null;
+let cachedAppStoreQR = null;
+let cachedPlayStoreQR = null;
 
 /**
  * Load logo image as base64 data URL
@@ -58,13 +60,14 @@ async function loadLogoImage() {
 }
 
 /**
- * Generate QR code as data URL using qrcode-generator library
+ * Generate QR code as PNG data URL using qrcode-generator library
+ * Converts the QR to canvas first to ensure PNG format for jsPDF
  * @param {string} url - URL to encode
- * @param {number} cellSize - Size of each QR cell (default 4)
- * @returns {string} Base64 data URL
+ * @param {number} size - Size in pixels (default 200)
+ * @returns {string} Base64 PNG data URL
  */
-function generateQRCode(url, cellSize = 4) {
-    // Check if qrcode-generator library is loaded (it exposes 'qrcode' function)
+function generateQRCode(url, size = 200) {
+    // Check if qrcode-generator library is loaded
     if (typeof qrcode === 'undefined') {
         console.error('qrcode-generator library not loaded');
         return null;
@@ -76,8 +79,35 @@ function generateQRCode(url, cellSize = 4) {
         qr.addData(url);
         qr.make();
 
-        // Generate data URL with specified cell size and margin of 2
-        const dataUrl = qr.createDataURL(cellSize, 2);
+        // Get the module count (number of cells)
+        const moduleCount = qr.getModuleCount();
+        
+        // Calculate cell size to fit desired output size
+        const cellSize = Math.floor(size / moduleCount);
+        const actualSize = cellSize * moduleCount;
+        
+        // Create canvas and draw QR code manually as PNG
+        const canvas = document.createElement('canvas');
+        canvas.width = actualSize;
+        canvas.height = actualSize;
+        const ctx = canvas.getContext('2d');
+        
+        // Fill white background
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, actualSize, actualSize);
+        
+        // Draw black modules
+        ctx.fillStyle = '#000000';
+        for (let row = 0; row < moduleCount; row++) {
+            for (let col = 0; col < moduleCount; col++) {
+                if (qr.isDark(row, col)) {
+                    ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+                }
+            }
+        }
+        
+        // Convert to PNG data URL
+        const dataUrl = canvas.toDataURL('image/png');
         console.log('QR code generated successfully for:', url.substring(0, 50) + '...');
         return dataUrl;
     } catch (error) {
@@ -94,11 +124,15 @@ function generateQRCode(url, cellSize = 4) {
 function drawPageHeader(doc, logoData) {
     if (!logoData) return;
 
-    const logoSize = 90;  // Bigger logo for visibility
+    const logoSize = 70;  // Logo size
     const logoX = (PAGE_WIDTH - logoSize) / 2;
     const logoY = 8;  // Minimal top margin
 
-    doc.addImage(logoData, 'PNG', logoX, logoY, logoSize, logoSize);
+    try {
+        doc.addImage(logoData, 'PNG', logoX, logoY, logoSize, logoSize);
+    } catch (e) {
+        console.error('Failed to add logo:', e);
+    }
 }
 
 /**
@@ -109,17 +143,17 @@ function drawPageHeader(doc, logoData) {
  * @param {number} cardEndY - Y position where the cards end
  */
 function drawPageFooter(doc, appStoreQR, playStoreQR, cardEndY) {
-    const qrSize = 100;  // Big QR codes for older people to scan easily
-    const spacing = 75;  // Space between QR codes for "Course Caddy" text
-    const footerY = cardEndY + 5;  // Minimal gap below cards
-    const labelY = footerY + qrSize + 12;
+    const qrSize = 80;  // QR code size in points
+    const spacing = 60;  // Space between QR codes for "Course Caddy" text
+    const footerY = cardEndY + 8;  // Minimal gap below cards
+    const labelY = footerY + qrSize + 10;
 
     // Calculate centered positions
     const centerX = PAGE_WIDTH / 2;
     const leftQRX = centerX - spacing - qrSize;
     const rightQRX = centerX + spacing;
 
-    // Draw QR codes (with fallback boxes if images fail)
+    // Draw QR codes
     if (appStoreQR) {
         try {
             doc.addImage(appStoreQR, 'PNG', leftQRX, footerY, qrSize, qrSize);
@@ -128,8 +162,12 @@ function drawPageFooter(doc, appStoreQR, playStoreQR, cardEndY) {
             // Draw placeholder box
             doc.setDrawColor(...COLOR_LINE);
             doc.rect(leftQRX, footerY, qrSize, qrSize);
+            doc.setFontSize(8);
+            doc.setTextColor(...COLOR_TEXT_GRAY);
+            doc.text('QR Error', leftQRX + qrSize/2 - 15, footerY + qrSize/2);
         }
     }
+    
     if (playStoreQR) {
         try {
             doc.addImage(playStoreQR, 'PNG', rightQRX, footerY, qrSize, qrSize);
@@ -138,20 +176,23 @@ function drawPageFooter(doc, appStoreQR, playStoreQR, cardEndY) {
             // Draw placeholder box
             doc.setDrawColor(...COLOR_LINE);
             doc.rect(rightQRX, footerY, qrSize, qrSize);
+            doc.setFontSize(8);
+            doc.setTextColor(...COLOR_TEXT_GRAY);
+            doc.text('QR Error', rightQRX + qrSize/2 - 15, footerY + qrSize/2);
         }
     }
 
     // Draw "Course Caddy" text centered between QR codes
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
+    doc.setFontSize(12);
     doc.setTextColor(...COLOR_TEXT_DARK);
     const brandText = 'Course Caddy';
     const brandWidth = doc.getTextWidth(brandText);
-    doc.text(brandText, centerX - brandWidth / 2, footerY + qrSize / 2 + 5);
+    doc.text(brandText, centerX - brandWidth / 2, footerY + qrSize / 2 + 4);
 
     // Draw labels under QR codes
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setTextColor(...COLOR_TEXT_GRAY);
 
     const appStoreLabel = 'App Store';
@@ -216,10 +257,10 @@ function generateTournamentPDFs(tournament, registrations, logoData, appStoreQR,
     const isMultiDay = numDays > 1;
 
     // Compact layout - minimal gaps between logo, cards, and QR codes
-    // Logo: 90px at y=8, ends at y=98
-    // Cards: start at y=106 (8px gap from logo)
-    const cardStartY = 106;
-    const cardEndY = cardStartY + CARD_HEIGHT;  // 106 + 504 = 610
+    // Logo: 70px at y=8, ends at y=78
+    // Cards: start at y=85 (7px gap from logo)
+    const cardStartY = 85;
+    const cardEndY = cardStartY + CARD_HEIGHT;  // 85 + 504 = 589
 
     if (isMultiDay) {
         // Multi-day: One player per page (days side by side, centered)
@@ -268,14 +309,13 @@ function generateTournamentPDFs(tournament, registrations, logoData, appStoreQR,
                 doc.addPage();
             }
 
-            // Draw header and footer on each page
+            // Draw header and footer
             drawPageHeader(doc, logoData);
             drawPageFooter(doc, appStoreQR, playStoreQR, cardEndY);
 
             const reg1 = registrations[i];
             const reg2 = registrations[i + 1];
 
-            // Get day conditions (use top-level if no days array)
             const dayConditions = tournament.days ? tournament.days[0] : {
                 date: tournament.date || tournament.startDate,
                 morningTemp: tournament.morningTemp,
@@ -286,14 +326,18 @@ function generateTournamentPDFs(tournament, registrations, logoData, appStoreQR,
                 eveningHumidity: tournament.eveningHumidity
             };
 
-            // Two cards side by side, centered
-            const totalWidth = CARD_WIDTH * 2;
-            const startX = (PAGE_WIDTH - totalWidth) / 2;
+            if (reg1 && reg2) {
+                // Two cards side by side
+                const totalWidth = CARD_WIDTH * 2;
+                const startX = (PAGE_WIDTH - totalWidth) / 2;
 
-            drawYardageCard(doc, tournament, reg1, dayConditions, startX, cardStartY, null);
-
-            if (reg2) {
+                drawYardageCard(doc, tournament, reg1, dayConditions, startX, cardStartY, null);
                 drawYardageCard(doc, tournament, reg2, dayConditions, startX + CARD_WIDTH, cardStartY, null);
+            } else if (reg1) {
+                // Single card, centered
+                const startX = (PAGE_WIDTH - CARD_WIDTH) / 2;
+
+                drawYardageCard(doc, tournament, reg1, dayConditions, startX, cardStartY, null);
             }
         }
     }
@@ -306,7 +350,7 @@ function generateTournamentPDFs(tournament, registrations, logoData, appStoreQR,
  * @param {jsPDF} doc - PDF document
  * @param {Object} tournament - Tournament data
  * @param {Object} registration - Player registration data
- * @param {Object} dayConditions - Conditions for this day
+ * @param {Object} dayConditions - Day-specific conditions
  * @param {number} x - X position
  * @param {number} y - Y position
  * @param {number|null} dayNumber - Day number (null for single-day)
@@ -315,94 +359,98 @@ function drawYardageCard(doc, tournament, registration, dayConditions, x, y, day
     const margin = 15;
     const contentWidth = CARD_WIDTH - (margin * 2);
     let currentY = y + margin;
-    
-    // Draw card border (light gray)
+
+    // Card border
     doc.setDrawColor(...COLOR_LINE);
     doc.setLineWidth(0.5);
     doc.rect(x, y, CARD_WIDTH, CARD_HEIGHT);
-    
-    // Tournament Name
+
+    // Tournament name
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
     doc.setTextColor(...COLOR_TEXT_DARK);
     const tournamentName = tournament.name;
     const nameWidth = doc.getTextWidth(tournamentName);
-    doc.text(tournamentName, x + (CARD_WIDTH - nameWidth) / 2, currentY + 14);
-    currentY += 22;
-    
-    // Course Name
+    doc.text(tournamentName, x + (CARD_WIDTH - nameWidth) / 2, currentY + 12);
+    currentY += 20;
+
+    // Course name
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
+    doc.setFontSize(9);
     doc.setTextColor(...COLOR_TEXT_GRAY);
-    const courseName = tournament.course;
+    const courseName = tournament.courseName || tournament.course || '';
     const courseWidth = doc.getTextWidth(courseName);
-    doc.text(courseName, x + (CARD_WIDTH - courseWidth) / 2, currentY + 11);
-    currentY += 22;
-    
-    // Divider
+    doc.text(courseName, x + (CARD_WIDTH - courseWidth) / 2, currentY + 8);
+    currentY += 16;
+
+    // Divider line
     doc.setDrawColor(...COLOR_LINE);
+    doc.setLineWidth(0.5);
     doc.line(x + margin, currentY, x + CARD_WIDTH - margin, currentY);
     currentY += 12;
-    
-    // Player Name
+
+    // Player name
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     doc.setTextColor(...COLOR_TEXT_DARK);
-    doc.text(registration.playerName, x + margin, currentY + 12);
+    doc.text(registration.playerName, x + margin, currentY + 10);
     currentY += 18;
-    
-    // Date (with day number if multi-day)
+
+    // Day and date
+    const dateStr = dayConditions.date || tournament.startDate;
+    const formattedDate = formatCardDate(dateStr);
+    const dayLabel = dayNumber ? `Day ${dayNumber} • ${formattedDate}` : formattedDate;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.setTextColor(...COLOR_TEXT_GRAY);
-    const dateStr = formatCardDate(dayConditions.date);
-    const dateLabel = dayNumber ? `Day ${dayNumber} • ${dateStr}` : dateStr;
-    doc.text(dateLabel, x + margin, currentY + 10);
-    currentY += 20;
-    
-    // Conditions summary
-    const tempRange = `${dayConditions.morningTemp}°F - ${dayConditions.afternoonTemp}°F`;
-    const humidityRange = `${dayConditions.morningHumidity}% - ${dayConditions.afternoonHumidity}%`;
+    doc.text(dayLabel, x + margin, currentY + 8);
+    currentY += 16;
+
+    // Conditions
+    const minTemp = Math.min(dayConditions.morningTemp, dayConditions.afternoonTemp, dayConditions.eveningTemp);
+    const maxTemp = Math.max(dayConditions.morningTemp, dayConditions.afternoonTemp, dayConditions.eveningTemp);
+    const minHumidity = Math.min(dayConditions.morningHumidity, dayConditions.afternoonHumidity, dayConditions.eveningHumidity);
+    const maxHumidity = Math.max(dayConditions.morningHumidity, dayConditions.afternoonHumidity, dayConditions.eveningHumidity);
+
     doc.setFontSize(9);
-    doc.text(`Temp: ${tempRange}`, x + margin, currentY + 9);
+    doc.text(`Temp: ${minTemp}°F - ${maxTemp}°F`, x + margin, currentY + 8);
     currentY += 12;
-    doc.text(`Humidity: ${humidityRange}`, x + margin, currentY + 9);
+    doc.text(`Humidity: ${minHumidity}% - ${maxHumidity}%`, x + margin, currentY + 8);
     currentY += 12;
-    doc.text(`Elevation: ${tournament.elevation}ft`, x + margin, currentY + 9);
+    doc.text(`Elevation: ${tournament.elevation}ft`, x + margin, currentY + 8);
     currentY += 18;
-    
-    // Divider
+
+    // Table header
+    doc.setDrawColor(...COLOR_LINE);
+    doc.setLineWidth(0.5);
     doc.line(x + margin, currentY, x + CARD_WIDTH - margin, currentY);
-    currentY += 10;
-    
-    // Column headers
+    currentY += 4;
+
     const colClub = x + margin;
     const colMorn = x + margin + 70;
-    const colAftn = x + margin + 130;
-    const colEve = x + margin + 190;
-    
+    const colAftn = x + margin + 120;
+    const colEve = x + margin + 170;
+
+    // Header row
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
-    doc.setTextColor(...COLOR_TEXT_GRAY);
-    doc.text('Club', colClub, currentY + 9);
-    doc.text('Morn', colMorn, currentY + 9);
-    doc.text('Aftn', colAftn, currentY + 9);
-    doc.text('Eve', colEve, currentY + 9);
-    currentY += 12;
-    
-    // Condition temps under headers
+    doc.setTextColor(...COLOR_TEXT_DARK);
+    doc.text('Club', colClub, currentY + 12);
+    doc.text('Morn', colMorn, currentY + 12);
+    doc.text('Aftn', colAftn, currentY + 12);
+    doc.text('Eve', colEve, currentY + 12);
+    currentY += 14;
+
+    // Temperature row under header
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
+    doc.setTextColor(...COLOR_TEXT_GRAY);
     doc.text(`${dayConditions.morningTemp}°F`, colMorn, currentY + 8);
     doc.text(`${dayConditions.afternoonTemp}°F`, colAftn, currentY + 8);
     doc.text(`${dayConditions.eveningTemp}°F`, colEve, currentY + 8);
-    currentY += 12;
-    
-    // Divider
-    doc.line(x + margin, currentY, x + CARD_WIDTH - margin, currentY);
-    currentY += 8;
-    
-    // Club distances
+    currentY += 14;
+
+    // Club rows
     doc.setFontSize(10);
     doc.setTextColor(...COLOR_TEXT_DARK);
     
@@ -447,8 +495,7 @@ function drawYardageCard(doc, tournament, registration, dayConditions, x, y, day
         currentY += 16;
     });
 
-    // Card ends after last club row - no footer text
-    // (Course Caddy branding is in the page footer with QR codes)
+    // No footer text inside card - branding is in page footer with QR codes
 }
 
 /**
@@ -481,11 +528,9 @@ function generatePlayerPDF(tournament, registration, logoData, appStoreQR, playS
 
     const numDays = tournament.days ? tournament.days.length : 1;
 
-    // Compact layout - minimal gaps between logo, cards, and QR codes
-    // Logo: 90px at y=8, ends at y=98
-    // Cards: start at y=106 (8px gap from logo)
-    const cardStartY = 106;
-    const cardEndY = cardStartY + CARD_HEIGHT;  // 106 + 504 = 610
+    // Compact layout
+    const cardStartY = 85;
+    const cardEndY = cardStartY + CARD_HEIGHT;
 
     if (numDays === 1) {
         // Draw header and footer
@@ -553,9 +598,9 @@ async function loadPDFAssets() {
     // Load logo asynchronously
     const logoData = await loadLogoImage();
 
-    // Generate QR codes synchronously (qrcode-generator is sync)
-    const appStoreQR = generateQRCode(APP_STORE_URL, 4);
-    const playStoreQR = generateQRCode(PLAY_STORE_URL, 4);
+    // Generate QR codes (now properly converts to PNG via canvas)
+    const appStoreQR = generateQRCode(APP_STORE_URL, 200);
+    const playStoreQR = generateQRCode(PLAY_STORE_URL, 200);
 
     console.log('PDF assets loaded:', {
         logoLoaded: !!logoData,
