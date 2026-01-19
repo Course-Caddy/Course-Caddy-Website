@@ -18,6 +18,140 @@ const COLOR_TEXT_DARK = [28, 28, 30];     // Near black
 const COLOR_TEXT_GRAY = [99, 99, 102];    // Gray
 const COLOR_LINE = [200, 200, 200];       // Light gray
 
+// Store URLs for QR codes
+const APP_STORE_URL = 'https://apps.apple.com/us/app/course-caddy-golf/id6757511581';
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.coursecaddy.android';
+
+// Logo path
+const LOGO_PATH = 'images/course_caddy_icon_300.png';
+
+// Cached logo data
+let cachedLogoData = null;
+
+/**
+ * Load logo image as base64 data URL
+ * @returns {Promise<string>} Base64 data URL
+ */
+async function loadLogoImage() {
+    if (cachedLogoData) {
+        return cachedLogoData;
+    }
+
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            cachedLogoData = canvas.toDataURL('image/png');
+            resolve(cachedLogoData);
+        };
+        img.onerror = () => {
+            console.error('Failed to load logo image');
+            resolve(null);
+        };
+        img.src = LOGO_PATH;
+    });
+}
+
+/**
+ * Generate QR code as data URL
+ * @param {string} url - URL to encode
+ * @param {number} size - Size of QR code in pixels
+ * @returns {Promise<string>} Base64 data URL
+ */
+async function generateQRCode(url, size = 150) {
+    return new Promise((resolve) => {
+        if (typeof QRCode === 'undefined') {
+            console.error('QRCode library not loaded');
+            resolve(null);
+            return;
+        }
+
+        const canvas = document.createElement('canvas');
+        QRCode.toCanvas(canvas, url, {
+            width: size,
+            margin: 1,
+            color: {
+                dark: '#000000',
+                light: '#ffffff'
+            }
+        }, (error) => {
+            if (error) {
+                console.error('QR code generation error:', error);
+                resolve(null);
+            } else {
+                resolve(canvas.toDataURL('image/png'));
+            }
+        });
+    });
+}
+
+/**
+ * Draw page header with logo
+ * @param {jsPDF} doc - PDF document
+ * @param {string} logoData - Base64 logo image data
+ */
+function drawPageHeader(doc, logoData) {
+    if (!logoData) return;
+
+    const logoSize = 45;
+    const logoX = (PAGE_WIDTH - logoSize) / 2;
+    const logoY = 15;
+
+    doc.addImage(logoData, 'PNG', logoX, logoY, logoSize, logoSize);
+}
+
+/**
+ * Draw page footer with QR codes
+ * @param {jsPDF} doc - PDF document
+ * @param {string} appStoreQR - App Store QR code data URL
+ * @param {string} playStoreQR - Play Store QR code data URL
+ */
+function drawPageFooter(doc, appStoreQR, playStoreQR) {
+    const qrSize = 55;
+    const spacing = 60;
+    const footerY = PAGE_HEIGHT - 85;
+    const labelY = footerY + qrSize + 10;
+
+    // Calculate centered positions
+    const centerX = PAGE_WIDTH / 2;
+    const leftQRX = centerX - spacing - qrSize;
+    const rightQRX = centerX + spacing;
+
+    // Draw QR codes
+    if (appStoreQR) {
+        doc.addImage(appStoreQR, 'PNG', leftQRX, footerY, qrSize, qrSize);
+    }
+    if (playStoreQR) {
+        doc.addImage(playStoreQR, 'PNG', rightQRX, footerY, qrSize, qrSize);
+    }
+
+    // Draw "Course Caddy" text centered between QR codes
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(...COLOR_TEXT_DARK);
+    const brandText = 'Course Caddy';
+    const brandWidth = doc.getTextWidth(brandText);
+    doc.text(brandText, centerX - brandWidth / 2, footerY + qrSize / 2 + 4);
+
+    // Draw labels under QR codes
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...COLOR_TEXT_GRAY);
+
+    const appStoreLabel = 'App Store';
+    const playStoreLabel = 'Google Play';
+    const appStoreLabelWidth = doc.getTextWidth(appStoreLabel);
+    const playStoreLabelWidth = doc.getTextWidth(playStoreLabel);
+
+    doc.text(appStoreLabel, leftQRX + (qrSize - appStoreLabelWidth) / 2, labelY);
+    doc.text(playStoreLabel, rightQRX + (qrSize - playStoreLabelWidth) / 2, labelY);
+}
+
 /**
  * Calculate adjusted distance based on conditions
  * @param {number} baseDistance - Player's baseline distance for the club
@@ -54,54 +188,65 @@ function calculateAdjustedDistance(baseDistance, baseTemp, baseElevation, baseHu
  * Generate all PDFs for a tournament
  * @param {Object} tournament - Tournament data
  * @param {Array} registrations - Array of registration objects
+ * @param {string} logoData - Base64 logo image data
+ * @param {string} appStoreQR - App Store QR code data URL
+ * @param {string} playStoreQR - Play Store QR code data URL
  * @returns {jsPDF} PDF document
  */
-function generateTournamentPDFs(tournament, registrations) {
+function generateTournamentPDFs(tournament, registrations, logoData, appStoreQR, playStoreQR) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'pt',
         format: 'letter'
     });
-    
+
     const numDays = tournament.days ? tournament.days.length : 1;
     const isMultiDay = numDays > 1;
-    
+
+    // Adjust card vertical position to make room for header and footer
+    const headerSpace = 70;  // Space for logo at top
+    const footerSpace = 95;  // Space for QR codes at bottom
+    const availableHeight = PAGE_HEIGHT - headerSpace - footerSpace;
+    const cardStartY = headerSpace + (availableHeight - CARD_HEIGHT) / 2;
+
     if (isMultiDay) {
         // Multi-day: One player per page (days side by side, centered)
         registrations.forEach((registration, index) => {
             if (index > 0) {
                 doc.addPage();
             }
-            
+
             // Calculate pages needed for this player
             const pagesNeeded = Math.ceil(numDays / 2);
-            
+
             for (let pageNum = 0; pageNum < pagesNeeded; pageNum++) {
                 if (pageNum > 0) {
                     doc.addPage();
                 }
-                
+
+                // Draw header and footer on each page
+                drawPageHeader(doc, logoData);
+                drawPageFooter(doc, appStoreQR, playStoreQR);
+
                 const day1Index = pageNum * 2;
                 const day2Index = pageNum * 2 + 1;
-                
+
                 const day1 = tournament.days[day1Index];
                 const day2 = day2Index < numDays ? tournament.days[day2Index] : null;
-                
+
                 if (day1 && day2) {
                     // Two cards side by side, centered
                     const totalWidth = CARD_WIDTH * 2;
                     const startX = (PAGE_WIDTH - totalWidth) / 2;
-                    const startY = (PAGE_HEIGHT - CARD_HEIGHT) / 2;
-                    
-                    drawYardageCard(doc, tournament, registration, day1, startX, startY, day1Index + 1);
-                    drawYardageCard(doc, tournament, registration, day2, startX + CARD_WIDTH, startY, day2Index + 1);
+
+                    drawYardageCard(doc, tournament, registration, day1, startX, cardStartY, day1Index + 1);
+                    drawYardageCard(doc, tournament, registration, day2, startX + CARD_WIDTH, cardStartY, day2Index + 1);
                 } else if (day1) {
                     // Single card, centered
                     const startX = (PAGE_WIDTH - CARD_WIDTH) / 2;
-                    const startY = (PAGE_HEIGHT - CARD_HEIGHT) / 2;
-                    
-                    drawYardageCard(doc, tournament, registration, day1, startX, startY, day1Index + 1);
+
+                    drawYardageCard(doc, tournament, registration, day1, startX, cardStartY, day1Index + 1);
                 }
             }
         });
@@ -111,10 +256,14 @@ function generateTournamentPDFs(tournament, registrations) {
             if (i > 0) {
                 doc.addPage();
             }
-            
+
+            // Draw header and footer on each page
+            drawPageHeader(doc, logoData);
+            drawPageFooter(doc, appStoreQR, playStoreQR);
+
             const reg1 = registrations[i];
             const reg2 = registrations[i + 1];
-            
+
             // Get day conditions (use top-level if no days array)
             const dayConditions = tournament.days ? tournament.days[0] : {
                 date: tournament.date || tournament.startDate,
@@ -125,18 +274,19 @@ function generateTournamentPDFs(tournament, registrations) {
                 eveningTemp: tournament.eveningTemp,
                 eveningHumidity: tournament.eveningHumidity
             };
-            
-            // Two cards side by side, left-aligned
-            const startY = (PAGE_HEIGHT - CARD_HEIGHT) / 2;
-            
-            drawYardageCard(doc, tournament, reg1, dayConditions, 0, startY, null);
-            
+
+            // Two cards side by side, centered
+            const totalWidth = CARD_WIDTH * 2;
+            const startX = (PAGE_WIDTH - totalWidth) / 2;
+
+            drawYardageCard(doc, tournament, reg1, dayConditions, startX, cardStartY, null);
+
             if (reg2) {
-                drawYardageCard(doc, tournament, reg2, dayConditions, CARD_WIDTH, startY, null);
+                drawYardageCard(doc, tournament, reg2, dayConditions, startX + CARD_WIDTH, cardStartY, null);
             }
         }
     }
-    
+
     return doc;
 }
 
@@ -315,19 +465,32 @@ function formatCardDate(dateStr) {
  * Generate PDF for a single player
  * @param {Object} tournament - Tournament data
  * @param {Object} registration - Player registration data
+ * @param {string} logoData - Base64 logo image data
+ * @param {string} appStoreQR - App Store QR code data URL
+ * @param {string} playStoreQR - Play Store QR code data URL
  * @returns {jsPDF} PDF document
  */
-function generatePlayerPDF(tournament, registration) {
+function generatePlayerPDF(tournament, registration, logoData, appStoreQR, playStoreQR) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'pt',
         format: 'letter'
     });
-    
+
     const numDays = tournament.days ? tournament.days.length : 1;
-    
+
+    // Adjust card vertical position to make room for header and footer
+    const headerSpace = 70;  // Space for logo at top
+    const footerSpace = 95;  // Space for QR codes at bottom
+    const availableHeight = PAGE_HEIGHT - headerSpace - footerSpace;
+    const cardStartY = headerSpace + (availableHeight - CARD_HEIGHT) / 2;
+
     if (numDays === 1) {
+        // Draw header and footer
+        drawPageHeader(doc, logoData);
+        drawPageFooter(doc, appStoreQR, playStoreQR);
+
         // Single card, centered
         const dayConditions = tournament.days ? tournament.days[0] : {
             date: tournament.date || tournament.startDate,
@@ -338,44 +501,59 @@ function generatePlayerPDF(tournament, registration) {
             eveningTemp: tournament.eveningTemp,
             eveningHumidity: tournament.eveningHumidity
         };
-        
+
         const startX = (PAGE_WIDTH - CARD_WIDTH) / 2;
-        const startY = (PAGE_HEIGHT - CARD_HEIGHT) / 2;
-        drawYardageCard(doc, tournament, registration, dayConditions, startX, startY, null);
+        drawYardageCard(doc, tournament, registration, dayConditions, startX, cardStartY, null);
     } else {
         // Multi-day: pages with 2 days each
         const pagesNeeded = Math.ceil(numDays / 2);
-        
+
         for (let pageNum = 0; pageNum < pagesNeeded; pageNum++) {
             if (pageNum > 0) {
                 doc.addPage();
             }
-            
+
+            // Draw header and footer on each page
+            drawPageHeader(doc, logoData);
+            drawPageFooter(doc, appStoreQR, playStoreQR);
+
             const day1Index = pageNum * 2;
             const day2Index = pageNum * 2 + 1;
-            
+
             const day1 = tournament.days[day1Index];
             const day2 = day2Index < numDays ? tournament.days[day2Index] : null;
-            
+
             if (day1 && day2) {
                 // Two cards side by side, centered
                 const totalWidth = CARD_WIDTH * 2;
                 const startX = (PAGE_WIDTH - totalWidth) / 2;
-                const startY = (PAGE_HEIGHT - CARD_HEIGHT) / 2;
-                
-                drawYardageCard(doc, tournament, registration, day1, startX, startY, day1Index + 1);
-                drawYardageCard(doc, tournament, registration, day2, startX + CARD_WIDTH, startY, day2Index + 1);
+
+                drawYardageCard(doc, tournament, registration, day1, startX, cardStartY, day1Index + 1);
+                drawYardageCard(doc, tournament, registration, day2, startX + CARD_WIDTH, cardStartY, day2Index + 1);
             } else if (day1) {
                 // Single card, centered
                 const startX = (PAGE_WIDTH - CARD_WIDTH) / 2;
-                const startY = (PAGE_HEIGHT - CARD_HEIGHT) / 2;
-                
-                drawYardageCard(doc, tournament, registration, day1, startX, startY, day1Index + 1);
+
+                drawYardageCard(doc, tournament, registration, day1, startX, cardStartY, day1Index + 1);
             }
         }
     }
-    
+
     return doc;
+}
+
+/**
+ * Load all PDF assets (logo and QR codes)
+ * @returns {Promise<Object>} Object with logoData, appStoreQR, playStoreQR
+ */
+async function loadPDFAssets() {
+    const [logoData, appStoreQR, playStoreQR] = await Promise.all([
+        loadLogoImage(),
+        generateQRCode(APP_STORE_URL),
+        generateQRCode(PLAY_STORE_URL)
+    ]);
+
+    return { logoData, appStoreQR, playStoreQR };
 }
 
 /**
@@ -383,15 +561,34 @@ function generatePlayerPDF(tournament, registration) {
  * @param {Object} tournament - Tournament data
  * @param {Array} registrations - Array of registration objects
  */
-function downloadAllPDFs(tournament, registrations) {
+async function downloadAllPDFs(tournament, registrations) {
     if (registrations.length === 0) {
         alert('No registrations to generate PDFs for.');
         return;
     }
-    
-    const doc = generateTournamentPDFs(tournament, registrations);
-    const fileName = `${tournament.name.replace(/[^a-z0-9]/gi, '_')}_Yardages.pdf`;
-    doc.save(fileName);
+
+    // Show loading state
+    const button = document.querySelector('[onclick*="downloadAllPDFs"]');
+    const originalText = button ? button.textContent : '';
+    if (button) {
+        button.textContent = 'Generating PDF...';
+        button.disabled = true;
+    }
+
+    try {
+        const { logoData, appStoreQR, playStoreQR } = await loadPDFAssets();
+        const doc = generateTournamentPDFs(tournament, registrations, logoData, appStoreQR, playStoreQR);
+        const fileName = `${tournament.name.replace(/[^a-z0-9]/gi, '_')}_Yardages.pdf`;
+        doc.save(fileName);
+    } catch (error) {
+        console.error('Error generating PDF:', error);
+        alert('Error generating PDF. Please try again.');
+    } finally {
+        if (button) {
+            button.textContent = originalText;
+            button.disabled = false;
+        }
+    }
 }
 
 /**
@@ -399,9 +596,15 @@ function downloadAllPDFs(tournament, registrations) {
  * @param {Object} tournament - Tournament data
  * @param {Object} registration - Player registration data
  */
-function downloadPlayerPDF(tournament, registration) {
-    const doc = generatePlayerPDF(tournament, registration);
-    const playerName = registration.playerName.replace(/[^a-z0-9]/gi, '_');
-    const fileName = `${playerName}_Yardages.pdf`;
-    doc.save(fileName);
+async function downloadPlayerPDF(tournament, registration) {
+    try {
+        const { logoData, appStoreQR, playStoreQR } = await loadPDFAssets();
+        const doc = generatePlayerPDF(tournament, registration, logoData, appStoreQR, playStoreQR);
+        const playerName = registration.playerName.replace(/[^a-z0-9]/gi, '_');
+        const fileName = `${playerName}_Yardages.pdf`;
+        doc.save(fileName);
+    } catch (error) {
+        console.error('Error generating PDF:', error);
+        alert('Error generating PDF. Please try again.');
+    }
 }
