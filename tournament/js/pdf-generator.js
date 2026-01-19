@@ -63,7 +63,7 @@ async function loadLogoImage() {
  * @param {number} size - Size of QR code in pixels
  * @returns {Promise<string>} Base64 data URL
  */
-async function generateQRCode(url, size = 150) {
+async function generateQRCode(url, size = 200) {
     return new Promise((resolve) => {
         if (typeof QRCode === 'undefined') {
             console.error('QRCode library not loaded');
@@ -71,22 +71,48 @@ async function generateQRCode(url, size = 150) {
             return;
         }
 
-        const canvas = document.createElement('canvas');
-        QRCode.toCanvas(canvas, url, {
-            width: size,
-            margin: 1,
-            color: {
-                dark: '#000000',
-                light: '#ffffff'
-            }
-        }, (error) => {
-            if (error) {
-                console.error('QR code generation error:', error);
-                resolve(null);
-            } else {
-                resolve(canvas.toDataURL('image/png'));
-            }
-        });
+        try {
+            // Create a temporary div to hold the QR code
+            const tempDiv = document.createElement('div');
+            tempDiv.style.display = 'none';
+            document.body.appendChild(tempDiv);
+
+            // Use QRCode constructor (works with qrcode.min.js)
+            const qr = new QRCode(tempDiv, {
+                text: url,
+                width: size,
+                height: size,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.M
+            });
+
+            // Wait a bit for the QR code to render, then extract the image
+            setTimeout(() => {
+                const canvas = tempDiv.querySelector('canvas');
+                const img = tempDiv.querySelector('img');
+
+                let dataUrl = null;
+                if (canvas) {
+                    dataUrl = canvas.toDataURL('image/png');
+                } else if (img && img.src) {
+                    dataUrl = img.src;
+                }
+
+                // Clean up
+                document.body.removeChild(tempDiv);
+
+                if (dataUrl) {
+                    resolve(dataUrl);
+                } else {
+                    console.error('Could not extract QR code image');
+                    resolve(null);
+                }
+            }, 100);
+        } catch (error) {
+            console.error('QR code generation error:', error);
+            resolve(null);
+        }
     });
 }
 
@@ -113,35 +139,49 @@ function drawPageHeader(doc, logoData) {
  * @param {number} cardEndY - Y position where the cards end
  */
 function drawPageFooter(doc, appStoreQR, playStoreQR, cardEndY) {
-    const qrSize = 90;  // Bigger QR codes for older people to scan
-    const spacing = 70;  // Space between QR codes for "Course Caddy" text
-    const footerY = cardEndY + 8;  // Minimal gap below cards
-    const labelY = footerY + qrSize + 10;
+    const qrSize = 100;  // Big QR codes for older people to scan easily
+    const spacing = 75;  // Space between QR codes for "Course Caddy" text
+    const footerY = cardEndY + 5;  // Minimal gap below cards
+    const labelY = footerY + qrSize + 12;
 
     // Calculate centered positions
     const centerX = PAGE_WIDTH / 2;
     const leftQRX = centerX - spacing - qrSize;
     const rightQRX = centerX + spacing;
 
-    // Draw QR codes
+    // Draw QR codes (with fallback boxes if images fail)
     if (appStoreQR) {
-        doc.addImage(appStoreQR, 'PNG', leftQRX, footerY, qrSize, qrSize);
+        try {
+            doc.addImage(appStoreQR, 'PNG', leftQRX, footerY, qrSize, qrSize);
+        } catch (e) {
+            console.error('Failed to add App Store QR:', e);
+            // Draw placeholder box
+            doc.setDrawColor(...COLOR_LINE);
+            doc.rect(leftQRX, footerY, qrSize, qrSize);
+        }
     }
     if (playStoreQR) {
-        doc.addImage(playStoreQR, 'PNG', rightQRX, footerY, qrSize, qrSize);
+        try {
+            doc.addImage(playStoreQR, 'PNG', rightQRX, footerY, qrSize, qrSize);
+        } catch (e) {
+            console.error('Failed to add Play Store QR:', e);
+            // Draw placeholder box
+            doc.setDrawColor(...COLOR_LINE);
+            doc.rect(rightQRX, footerY, qrSize, qrSize);
+        }
     }
 
     // Draw "Course Caddy" text centered between QR codes
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
+    doc.setFontSize(14);
     doc.setTextColor(...COLOR_TEXT_DARK);
     const brandText = 'Course Caddy';
     const brandWidth = doc.getTextWidth(brandText);
-    doc.text(brandText, centerX - brandWidth / 2, footerY + qrSize / 2 + 4);
+    doc.text(brandText, centerX - brandWidth / 2, footerY + qrSize / 2 + 5);
 
     // Draw labels under QR codes
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(10);
     doc.setTextColor(...COLOR_TEXT_GRAY);
 
     const appStoreLabel = 'App Store';
@@ -436,19 +476,9 @@ function drawYardageCard(doc, tournament, registration, dayConditions, x, y, day
         
         currentY += 16;
     });
-    
-    // Footer divider
-    currentY = y + CARD_HEIGHT - 30;
-    doc.line(x + margin, currentY, x + CARD_WIDTH - margin, currentY);
-    
-    // Course Caddy branding
-    currentY += 15;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(...COLOR_TEXT_GRAY);
-    const brandText = 'Course Caddy';
-    const brandWidth = doc.getTextWidth(brandText);
-    doc.text(brandText, x + (CARD_WIDTH - brandWidth) / 2, currentY);
+
+    // Card ends after last club row - no footer text
+    // (Course Caddy branding is in the page footer with QR codes)
 }
 
 /**
