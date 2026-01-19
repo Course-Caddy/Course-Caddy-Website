@@ -98,9 +98,9 @@ async function generateQRCode(url, size = 150) {
 function drawPageHeader(doc, logoData) {
     if (!logoData) return;
 
-    const logoSize = 45;
+    const logoSize = 90;  // Bigger logo for visibility
     const logoX = (PAGE_WIDTH - logoSize) / 2;
-    const logoY = 15;
+    const logoY = 8;  // Minimal top margin
 
     doc.addImage(logoData, 'PNG', logoX, logoY, logoSize, logoSize);
 }
@@ -110,11 +110,12 @@ function drawPageHeader(doc, logoData) {
  * @param {jsPDF} doc - PDF document
  * @param {string} appStoreQR - App Store QR code data URL
  * @param {string} playStoreQR - Play Store QR code data URL
+ * @param {number} cardEndY - Y position where the cards end
  */
-function drawPageFooter(doc, appStoreQR, playStoreQR) {
-    const qrSize = 55;
-    const spacing = 60;
-    const footerY = PAGE_HEIGHT - 85;
+function drawPageFooter(doc, appStoreQR, playStoreQR, cardEndY) {
+    const qrSize = 90;  // Bigger QR codes for older people to scan
+    const spacing = 70;  // Space between QR codes for "Course Caddy" text
+    const footerY = cardEndY + 8;  // Minimal gap below cards
     const labelY = footerY + qrSize + 10;
 
     // Calculate centered positions
@@ -132,7 +133,7 @@ function drawPageFooter(doc, appStoreQR, playStoreQR) {
 
     // Draw "Course Caddy" text centered between QR codes
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
+    doc.setFontSize(12);
     doc.setTextColor(...COLOR_TEXT_DARK);
     const brandText = 'Course Caddy';
     const brandWidth = doc.getTextWidth(brandText);
@@ -140,7 +141,7 @@ function drawPageFooter(doc, appStoreQR, playStoreQR) {
 
     // Draw labels under QR codes
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
+    doc.setFontSize(9);
     doc.setTextColor(...COLOR_TEXT_GRAY);
 
     const appStoreLabel = 'App Store';
@@ -204,11 +205,11 @@ function generateTournamentPDFs(tournament, registrations, logoData, appStoreQR,
     const numDays = tournament.days ? tournament.days.length : 1;
     const isMultiDay = numDays > 1;
 
-    // Adjust card vertical position to make room for header and footer
-    const headerSpace = 70;  // Space for logo at top
-    const footerSpace = 95;  // Space for QR codes at bottom
-    const availableHeight = PAGE_HEIGHT - headerSpace - footerSpace;
-    const cardStartY = headerSpace + (availableHeight - CARD_HEIGHT) / 2;
+    // Compact layout - minimal gaps between logo, cards, and QR codes
+    // Logo: 90px at y=8, ends at y=98
+    // Cards: start at y=106 (8px gap from logo)
+    const cardStartY = 106;
+    const cardEndY = cardStartY + CARD_HEIGHT;  // 106 + 504 = 610
 
     if (isMultiDay) {
         // Multi-day: One player per page (days side by side, centered)
@@ -227,7 +228,7 @@ function generateTournamentPDFs(tournament, registrations, logoData, appStoreQR,
 
                 // Draw header and footer on each page
                 drawPageHeader(doc, logoData);
-                drawPageFooter(doc, appStoreQR, playStoreQR);
+                drawPageFooter(doc, appStoreQR, playStoreQR, cardEndY);
 
                 const day1Index = pageNum * 2;
                 const day2Index = pageNum * 2 + 1;
@@ -259,7 +260,7 @@ function generateTournamentPDFs(tournament, registrations, logoData, appStoreQR,
 
             // Draw header and footer on each page
             drawPageHeader(doc, logoData);
-            drawPageFooter(doc, appStoreQR, playStoreQR);
+            drawPageFooter(doc, appStoreQR, playStoreQR, cardEndY);
 
             const reg1 = registrations[i];
             const reg2 = registrations[i + 1];
@@ -480,16 +481,16 @@ function generatePlayerPDF(tournament, registration, logoData, appStoreQR, playS
 
     const numDays = tournament.days ? tournament.days.length : 1;
 
-    // Adjust card vertical position to make room for header and footer
-    const headerSpace = 70;  // Space for logo at top
-    const footerSpace = 95;  // Space for QR codes at bottom
-    const availableHeight = PAGE_HEIGHT - headerSpace - footerSpace;
-    const cardStartY = headerSpace + (availableHeight - CARD_HEIGHT) / 2;
+    // Compact layout - minimal gaps between logo, cards, and QR codes
+    // Logo: 90px at y=8, ends at y=98
+    // Cards: start at y=106 (8px gap from logo)
+    const cardStartY = 106;
+    const cardEndY = cardStartY + CARD_HEIGHT;  // 106 + 504 = 610
 
     if (numDays === 1) {
         // Draw header and footer
         drawPageHeader(doc, logoData);
-        drawPageFooter(doc, appStoreQR, playStoreQR);
+        drawPageFooter(doc, appStoreQR, playStoreQR, cardEndY);
 
         // Single card, centered
         const dayConditions = tournament.days ? tournament.days[0] : {
@@ -515,7 +516,7 @@ function generatePlayerPDF(tournament, registration, logoData, appStoreQR, playS
 
             // Draw header and footer on each page
             drawPageHeader(doc, logoData);
-            drawPageFooter(doc, appStoreQR, playStoreQR);
+            drawPageFooter(doc, appStoreQR, playStoreQR, cardEndY);
 
             const day1Index = pageNum * 2;
             const day2Index = pageNum * 2 + 1;
