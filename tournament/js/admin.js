@@ -496,7 +496,7 @@ function generateDayCards(startDateStr, endDateStr, timezone) {
                 </div>
                 <div class="conditions-grid">
                     <div class="conditions-group">
-                        <div class="conditions-title">☀️ Morning</div>
+                        <div class="conditions-title">☀️ Morning <span style="font-weight: normal; color: var(--color-gray-500);">(8am)</span></div>
                         <div class="conditions-row">
                             <div class="form-group">
                                 <label class="form-label">Temp (°F)</label>
@@ -508,9 +508,9 @@ function generateDayCards(startDateStr, endDateStr, timezone) {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="conditions-group">
-                        <div class="conditions-title">🌤️ Afternoon</div>
+                        <div class="conditions-title">🌤️ Afternoon <span style="font-weight: normal; color: var(--color-gray-500);">(1pm)</span></div>
                         <div class="conditions-row">
                             <div class="form-group">
                                 <label class="form-label">Temp (°F)</label>
@@ -522,9 +522,9 @@ function generateDayCards(startDateStr, endDateStr, timezone) {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="conditions-group">
-                        <div class="conditions-title">🌅 Evening</div>
+                        <div class="conditions-title">🌅 Evening <span style="font-weight: normal; color: var(--color-gray-500);">(5pm)</span></div>
                         <div class="conditions-row">
                             <div class="form-group">
                                 <label class="form-label">Temp (°F)</label>
@@ -710,11 +710,11 @@ async function fetchWeatherForDays(lat, lon) {
         const temps = data.hourly.temperature_2m;
         const humidity = data.hourly.relative_humidity_2m;
         
-        // Get indices for this date (morning ~8am, afternoon ~2pm, evening ~6pm)
+        // Get indices for this date (morning 8am, afternoon 1pm, evening 5pm)
         const morningIdx = hourlyTimes.findIndex(t => t.startsWith(dateStr) && t.includes('T08:'));
-        const afternoonIdx = hourlyTimes.findIndex(t => t.startsWith(dateStr) && t.includes('T14:'));
-        const eveningIdx = hourlyTimes.findIndex(t => t.startsWith(dateStr) && t.includes('T18:'));
-        
+        const afternoonIdx = hourlyTimes.findIndex(t => t.startsWith(dateStr) && t.includes('T13:'));
+        const eveningIdx = hourlyTimes.findIndex(t => t.startsWith(dateStr) && t.includes('T17:'));
+
         // Update form fields
         if (morningIdx !== -1) {
             const morningTempInput = document.querySelector(`.morning-temp[data-day="${dayNum}"]`);
@@ -799,10 +799,10 @@ async function fetchLiveWeatherForTournament(tournament) {
             const temps = data.hourly.temperature_2m;
             const humidity = data.hourly.relative_humidity_2m;
 
-            // Get indices for this date (morning ~8am, afternoon ~2pm, evening ~6pm)
+            // Get indices for this date (morning 8am, afternoon 1pm, evening 5pm)
             const morningIdx = hourlyTimes.findIndex(t => t.startsWith(dateStr) && t.includes('T08:'));
-            const afternoonIdx = hourlyTimes.findIndex(t => t.startsWith(dateStr) && t.includes('T14:'));
-            const eveningIdx = hourlyTimes.findIndex(t => t.startsWith(dateStr) && t.includes('T18:'));
+            const afternoonIdx = hourlyTimes.findIndex(t => t.startsWith(dateStr) && t.includes('T13:'));
+            const eveningIdx = hourlyTimes.findIndex(t => t.startsWith(dateStr) && t.includes('T17:'));
 
             // Update day conditions with live data
             if (morningIdx !== -1) {
