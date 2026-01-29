@@ -352,6 +352,57 @@
             cursor: not-allowed;
         }
 
+        .btn-edit-tournament {
+            padding: 10px 20px;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            border: 1px solid var(--color-primary);
+            border-radius: var(--radius-sm);
+            background: var(--color-white);
+            color: var(--color-primary);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .btn-edit-tournament:hover {
+            background: var(--color-primary);
+            color: var(--color-white);
+        }
+
+        /* Edit mode banner */
+        .edit-mode-banner {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .edit-mode-banner-text {
+            font-weight: 500;
+            color: #856404;
+        }
+
+        .btn-cancel-edit {
+            padding: 6px 12px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border: 1px solid #856404;
+            border-radius: var(--radius-sm);
+            background: transparent;
+            color: #856404;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .btn-cancel-edit:hover {
+            background: #856404;
+            color: white;
+        }
+
         /* Delete buttons */
         .btn-delete {
             background: transparent;
@@ -630,9 +681,12 @@
                         </div>
                     </div>
                     
-                    <div id="registrations-actions" style="display: none; margin-bottom: var(--spacing-md);">
+                    <div id="registrations-actions" style="display: none; margin-bottom: var(--spacing-md); display: flex; gap: var(--spacing-sm);">
                         <button class="btn-download-all" id="download-all-btn">
                             📥 Download All PDFs
+                        </button>
+                        <button class="btn-edit-tournament" id="edit-tournament-btn">
+                            ✏️ Edit Tournament
                         </button>
                     </div>
                     
@@ -658,8 +712,14 @@
             <!-- Create Tournament Tab -->
             <div class="tab-content" id="create-tab">
                 <div class="admin-section">
-                    <h2 class="admin-section-title">Create New Tournament</h2>
-                    
+                    <!-- Edit Mode Banner (hidden by default) -->
+                    <div id="edit-mode-banner" class="edit-mode-banner" style="display: none;">
+                        <span class="edit-mode-banner-text">✏️ Editing: <span id="editing-tournament-name"></span></span>
+                        <button type="button" class="btn-cancel-edit" id="cancel-edit-btn">Cancel Edit</button>
+                    </div>
+
+                    <h2 id="form-title" class="admin-section-title">Create New Tournament</h2>
+
                     <form id="create-tournament-form" class="create-form">
                         <!-- Basic Info -->
                         <div class="form-group">
@@ -746,7 +806,7 @@
                             </div>
                         </div>
                         
-                        <button type="submit" class="submit-button" style="margin-top: var(--spacing-md);">
+                        <button type="submit" id="form-submit-btn" class="submit-button" style="margin-top: var(--spacing-md);">
                             Create Tournament
                         </button>
                     </form>

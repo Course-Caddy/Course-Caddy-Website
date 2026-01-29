@@ -7,6 +7,8 @@ let tournaments = [];
 let selectedTournamentId = null;
 let tournamentDays = []; // Array of dates for current tournament being created
 let currentUser = null;
+let editMode = false; // Track if we're editing an existing tournament
+let editingTournamentId = null; // ID of tournament being edited
 
 document.addEventListener('DOMContentLoaded', async function() {
     // Set up login form
@@ -69,6 +71,12 @@ async function initializeAdmin() {
 
     // Set up delete tournament button
     setupDeleteTournamentButton();
+
+    // Set up edit tournament button
+    setupEditTournamentButton();
+
+    // Set up cancel edit button
+    setupCancelEditButton();
 }
 
 /**
@@ -316,16 +324,18 @@ function createRegistrationItem(registration) {
 
 /**
  * Download PDF for an individual player
- * @param {Object} registration 
+ * @param {Object} registration
  */
-function downloadIndividualPDF(registration) {
+async function downloadIndividualPDF(registration) {
     const tournament = tournaments.find(t => t.id === selectedTournamentId);
     if (!tournament) {
         alert('Tournament not found.');
         return;
     }
-    
-    downloadPlayerPDF(tournament, registration);
+
+    // Fetch live weather before generating PDF
+    const tournamentWithLiveWeather = await fetchLiveWeatherForTournament(tournament);
+    downloadPlayerPDF(tournamentWithLiveWeather, registration);
 }
 
 /**
@@ -380,9 +390,14 @@ function setupDownloadButton() {
                 btn.textContent = '📥 Download All PDFs';
                 return;
             }
-            
+
+            // Fetch live weather before generating PDFs
+            btn.textContent = '🌡️ Fetching weather...';
+            const tournamentWithLiveWeather = await fetchLiveWeatherForTournament(tournament);
+            btn.textContent = '⏳ Generating PDFs...';
+
             // Generate and download PDFs
-            downloadAllPDFs(tournament, registrations);
+            downloadAllPDFs(tournamentWithLiveWeather, registrations);
             
             btn.textContent = '✓ Downloaded!';
             setTimeout(() => {
@@ -724,6 +739,100 @@ async function fetchWeatherForDays(lat, lon) {
 }
 
 /**
+ * Fetch live weather for a tournament and return updated tournament object
+ * Used when generating PDFs to get real-time weather data
+ * @param {Object} tournament - Tournament object
+ * @returns {Object} Tournament object with updated weather conditions
+ */
+async function fetchLiveWeatherForTournament(tournament) {
+    // If no coordinates, return original tournament
+    if (!tournament.latitude || !tournament.longitude) {
+        console.log('No coordinates for tournament, using stored weather data');
+        return tournament;
+    }
+
+    // Get tournament dates
+    const days = tournament.days || [];
+    if (days.length === 0) {
+        console.log('No days configured for tournament');
+        return tournament;
+    }
+
+    const startDate = days[0].date;
+    const endDate = days[days.length - 1].date;
+
+    console.log(`Fetching live weather for ${tournament.name} (${startDate} to ${endDate})`);
+
+    try {
+        // Open-Meteo API - free, no key needed
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${tournament.latitude}&longitude=${tournament.longitude}&hourly=temperature_2m,relative_humidity_2m&temperature_unit=fahrenheit&start_date=${startDate}&end_date=${endDate}&timezone=auto`;
+
+        const response = await fetch(url);
+        if (!response.ok) {
+            console.warn('Weather API error, using stored data');
+            return tournament;
+        }
+
+        const data = await response.json();
+
+        // Create a deep copy of the tournament to avoid mutating the original
+        const updatedTournament = JSON.parse(JSON.stringify(tournament));
+
+        // Process weather data for each day
+        updatedTournament.days.forEach((day, index) => {
+            const dateStr = day.date;
+
+            // Find hourly data for this date
+            const hourlyTimes = data.hourly.time;
+            const temps = data.hourly.temperature_2m;
+            const humidity = data.hourly.relative_humidity_2m;
+
+            // Get indices for this date (morning ~8am, afternoon ~2pm, evening ~6pm)
+            const morningIdx = hourlyTimes.findIndex(t => t.startsWith(dateStr) && t.includes('T08:'));
+            const afternoonIdx = hourlyTimes.findIndex(t => t.startsWith(dateStr) && t.includes('T14:'));
+            const eveningIdx = hourlyTimes.findIndex(t => t.startsWith(dateStr) && t.includes('T18:'));
+
+            // Update day conditions with live data
+            if (morningIdx !== -1) {
+                day.morningTemp = Math.round(temps[morningIdx]);
+                day.morningHumidity = Math.round(humidity[morningIdx]);
+            }
+
+            if (afternoonIdx !== -1) {
+                day.afternoonTemp = Math.round(temps[afternoonIdx]);
+                day.afternoonHumidity = Math.round(humidity[afternoonIdx]);
+            }
+
+            if (eveningIdx !== -1) {
+                day.eveningTemp = Math.round(temps[eveningIdx]);
+                day.eveningHumidity = Math.round(humidity[eveningIdx]);
+            }
+
+            console.log(`Day ${index + 1} (${dateStr}): Morning ${day.morningTemp}°F, Afternoon ${day.afternoonTemp}°F, Evening ${day.eveningTemp}°F`);
+        });
+
+        // Also update top-level conditions for backwards compatibility
+        if (updatedTournament.days.length > 0) {
+            const firstDay = updatedTournament.days[0];
+            updatedTournament.morningTemp = firstDay.morningTemp;
+            updatedTournament.morningHumidity = firstDay.morningHumidity;
+            updatedTournament.afternoonTemp = firstDay.afternoonTemp;
+            updatedTournament.afternoonHumidity = firstDay.afternoonHumidity;
+            updatedTournament.eveningTemp = firstDay.eveningTemp;
+            updatedTournament.eveningHumidity = firstDay.eveningHumidity;
+        }
+
+        console.log('Live weather fetched successfully');
+        return updatedTournament;
+
+    } catch (error) {
+        console.error('Error fetching live weather:', error);
+        // Return original tournament if fetch fails
+        return tournament;
+    }
+}
+
+/**
  * Set up create tournament form
  */
 function setupCreateForm() {
@@ -753,8 +862,11 @@ function setupCreateForm() {
             });
         });
         
+        // Use existing ID if editing, otherwise generate new ID
+        const tournamentId = editMode ? editingTournamentId : 'tournament-' + Date.now();
+
         const tournament = {
-            id: 'tournament-' + Date.now(),
+            id: tournamentId,
             name: document.getElementById('new-tournament-name').value.trim(),
             course: document.getElementById('new-tournament-course').value.trim(),
             startDate: document.getElementById('new-tournament-start-date').value,
@@ -773,27 +885,46 @@ function setupCreateForm() {
             eveningTemp: days[0].eveningTemp,
             eveningHumidity: days[0].eveningHumidity
         };
-        
+
+        const isEditing = editMode;
+        const actionWord = isEditing ? 'updated' : 'created';
+
         if (USE_MOCK_DATA) {
-            MOCK_TOURNAMENTS.push(tournament);
-            alert('Tournament created successfully!\n\nNote: In mock mode, this will be lost on page refresh. Set up Firebase for persistent storage.');
+            if (isEditing) {
+                // Update existing tournament in mock data
+                const index = MOCK_TOURNAMENTS.findIndex(t => t.id === tournamentId);
+                if (index !== -1) {
+                    MOCK_TOURNAMENTS[index] = tournament;
+                }
+            } else {
+                MOCK_TOURNAMENTS.push(tournament);
+            }
+            alert(`Tournament ${actionWord} successfully!\n\nNote: In mock mode, this will be lost on page refresh. Set up Firebase for persistent storage.`);
             await loadTournaments();
-            form.reset();
-            document.getElementById('days-conditions-container').innerHTML = '<div class="no-days-message">Select start and end dates above to configure daily conditions</div>';
-            tournamentDays = [];
-            document.querySelector('[data-tab="registrations"]').click();
-        } else {
-            try {
-                await db.collection('tournaments').doc(tournament.id).set(tournament);
-                alert('Tournament created successfully!');
-                await loadTournaments();
+            if (isEditing) {
+                exitEditMode();
+            } else {
                 form.reset();
                 document.getElementById('days-conditions-container').innerHTML = '<div class="no-days-message">Select start and end dates above to configure daily conditions</div>';
                 tournamentDays = [];
                 document.querySelector('[data-tab="registrations"]').click();
+            }
+        } else {
+            try {
+                await db.collection('tournaments').doc(tournament.id).set(tournament);
+                alert(`Tournament ${actionWord} successfully!`);
+                await loadTournaments();
+                if (isEditing) {
+                    exitEditMode();
+                } else {
+                    form.reset();
+                    document.getElementById('days-conditions-container').innerHTML = '<div class="no-days-message">Select start and end dates above to configure daily conditions</div>';
+                    tournamentDays = [];
+                    document.querySelector('[data-tab="registrations"]').click();
+                }
             } catch (error) {
-                console.error('Error creating tournament:', error);
-                alert('Error creating tournament. Please try again.');
+                console.error(`Error ${isEditing ? 'updating' : 'creating'} tournament:`, error);
+                alert(`Error ${isEditing ? 'updating' : 'creating'} tournament. Please try again.`);
             }
         }
     });
@@ -1021,4 +1152,162 @@ async function deleteTournament(tournamentId) {
         await db.collection('tournaments').doc(tournamentId).delete();
         console.log('Tournament deleted successfully');
     }
+}
+
+/**
+ * Set up edit tournament button
+ */
+function setupEditTournamentButton() {
+    const btn = document.getElementById('edit-tournament-btn');
+
+    btn.addEventListener('click', function() {
+        if (!selectedTournamentId) {
+            alert('Please select a tournament first.');
+            return;
+        }
+
+        const tournament = tournaments.find(t => t.id === selectedTournamentId);
+        if (!tournament) {
+            alert('Tournament not found.');
+            return;
+        }
+
+        // Enter edit mode
+        enterEditMode(tournament);
+    });
+}
+
+/**
+ * Set up cancel edit button
+ */
+function setupCancelEditButton() {
+    const btn = document.getElementById('cancel-edit-btn');
+
+    btn.addEventListener('click', function() {
+        exitEditMode();
+    });
+}
+
+/**
+ * Enter edit mode and populate form with tournament data
+ * @param {Object} tournament - Tournament to edit
+ */
+function enterEditMode(tournament) {
+    editMode = true;
+    editingTournamentId = tournament.id;
+
+    // Update UI to show edit mode
+    document.getElementById('edit-mode-banner').style.display = 'flex';
+    document.getElementById('editing-tournament-name').textContent = tournament.name;
+    document.getElementById('form-title').textContent = 'Edit Tournament';
+    document.getElementById('form-submit-btn').textContent = 'Update Tournament';
+
+    // Populate form fields
+    document.getElementById('new-tournament-name').value = tournament.name || '';
+    document.getElementById('new-tournament-course').value = tournament.course || tournament.courseName || '';
+    document.getElementById('new-tournament-start-date').value = tournament.startDate || tournament.date || '';
+    document.getElementById('new-tournament-end-date').value = tournament.endDate || tournament.startDate || tournament.date || '';
+    document.getElementById('new-tournament-cutoff').value = tournament.registrationCutoff || '';
+    document.getElementById('new-tournament-elevation').value = tournament.elevation || '';
+
+    // Populate location fields if available
+    if (tournament.latitude && tournament.longitude) {
+        document.getElementById('use-auto-weather').checked = true;
+        document.getElementById('location-section').style.display = 'block';
+        document.getElementById('course-latitude').value = tournament.latitude;
+        document.getElementById('course-longitude').value = tournament.longitude;
+    } else {
+        document.getElementById('use-auto-weather').checked = false;
+        document.getElementById('location-section').style.display = 'none';
+        document.getElementById('course-latitude').value = '';
+        document.getElementById('course-longitude').value = '';
+    }
+
+    // Generate day cards based on dates
+    const startDate = tournament.startDate || tournament.date;
+    const endDate = tournament.endDate || tournament.startDate || tournament.date;
+    if (startDate && endDate) {
+        generateDayCards(startDate, endDate);
+
+        // Populate day conditions after cards are generated
+        setTimeout(() => {
+            populateDayConditions(tournament);
+        }, 100);
+    }
+
+    // Switch to the create/edit tab
+    document.querySelector('[data-tab="registrations"]').classList.remove('active');
+    document.querySelector('[data-tab="create"]').classList.add('active');
+    document.getElementById('registrations-tab').classList.remove('active');
+    document.getElementById('create-tab').classList.add('active');
+}
+
+/**
+ * Populate day condition fields with tournament data
+ * @param {Object} tournament - Tournament object
+ */
+function populateDayConditions(tournament) {
+    const days = tournament.days || [];
+
+    if (days.length === 0 && tournament.morningTemp) {
+        // Single day tournament with conditions at top level
+        const morningTempInput = document.querySelector('.morning-temp[data-day="1"]');
+        const morningHumidityInput = document.querySelector('.morning-humidity[data-day="1"]');
+        const afternoonTempInput = document.querySelector('.afternoon-temp[data-day="1"]');
+        const afternoonHumidityInput = document.querySelector('.afternoon-humidity[data-day="1"]');
+        const eveningTempInput = document.querySelector('.evening-temp[data-day="1"]');
+        const eveningHumidityInput = document.querySelector('.evening-humidity[data-day="1"]');
+
+        if (morningTempInput) morningTempInput.value = tournament.morningTemp;
+        if (morningHumidityInput) morningHumidityInput.value = tournament.morningHumidity;
+        if (afternoonTempInput) afternoonTempInput.value = tournament.afternoonTemp;
+        if (afternoonHumidityInput) afternoonHumidityInput.value = tournament.afternoonHumidity;
+        if (eveningTempInput) eveningTempInput.value = tournament.eveningTemp;
+        if (eveningHumidityInput) eveningHumidityInput.value = tournament.eveningHumidity;
+    } else {
+        // Multi-day tournament
+        days.forEach((day, index) => {
+            const dayNum = index + 1;
+
+            const morningTempInput = document.querySelector(`.morning-temp[data-day="${dayNum}"]`);
+            const morningHumidityInput = document.querySelector(`.morning-humidity[data-day="${dayNum}"]`);
+            const afternoonTempInput = document.querySelector(`.afternoon-temp[data-day="${dayNum}"]`);
+            const afternoonHumidityInput = document.querySelector(`.afternoon-humidity[data-day="${dayNum}"]`);
+            const eveningTempInput = document.querySelector(`.evening-temp[data-day="${dayNum}"]`);
+            const eveningHumidityInput = document.querySelector(`.evening-humidity[data-day="${dayNum}"]`);
+
+            if (morningTempInput) morningTempInput.value = day.morningTemp;
+            if (morningHumidityInput) morningHumidityInput.value = day.morningHumidity;
+            if (afternoonTempInput) afternoonTempInput.value = day.afternoonTemp;
+            if (afternoonHumidityInput) afternoonHumidityInput.value = day.afternoonHumidity;
+            if (eveningTempInput) eveningTempInput.value = day.eveningTemp;
+            if (eveningHumidityInput) eveningHumidityInput.value = day.eveningHumidity;
+        });
+    }
+}
+
+/**
+ * Exit edit mode and reset form
+ */
+function exitEditMode() {
+    editMode = false;
+    editingTournamentId = null;
+
+    // Update UI to show create mode
+    document.getElementById('edit-mode-banner').style.display = 'none';
+    document.getElementById('form-title').textContent = 'Create New Tournament';
+    document.getElementById('form-submit-btn').textContent = 'Create Tournament';
+
+    // Reset form
+    document.getElementById('create-tournament-form').reset();
+    document.getElementById('location-section').style.display = 'none';
+    document.getElementById('days-conditions-container').innerHTML =
+        '<div class="no-days-message">Select start and end dates above to configure daily conditions</div>';
+    tournamentDays = [];
+
+    // Switch back to registrations tab
+    document.querySelector('[data-tab="create"]').classList.remove('active');
+    document.querySelector('[data-tab="registrations"]').classList.add('active');
+    document.getElementById('create-tab').classList.remove('active');
+    document.getElementById('registrations-tab').classList.add('active');
 }
