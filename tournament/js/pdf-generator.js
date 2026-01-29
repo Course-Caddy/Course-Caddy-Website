@@ -20,7 +20,7 @@ const COLOR_LINE = [200, 200, 200];       // Light gray
 
 // Store URLs for QR codes
 const APP_STORE_URL = 'https://apps.apple.com/us/app/course-caddy-golf/id6757511581';
-const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.coursecaddy.android';
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.coursecaddy.android&pcampaignid=web_share';
 
 // Logo path
 const LOGO_PATH = 'images/course_caddy_icon_300.png';
