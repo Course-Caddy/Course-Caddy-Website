@@ -357,7 +357,7 @@ function generateTournamentPDFs(tournament, registrations, logoData, appStoreQR,
  * @param {number|null} dayNumber - Day number (null for single-day)
  */
 function drawYardageCard(doc, tournament, registration, dayConditions, x, y, dayNumber) {
-    const margin = 15;
+    const margin = 20;
     const contentWidth = CARD_WIDTH - (margin * 2);
     let currentY = y + margin;
 
