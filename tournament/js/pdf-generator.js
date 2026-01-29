@@ -516,7 +516,7 @@ function drawYardageCard(doc, tournament, registration, dayConditions, x, y, day
                 doc.setTextColor(...adjColor);
                 // Position as superscript: right of yardage, raised up
                 const yardageWidth = doc.getTextWidth(`${dist}`);
-                doc.text(adjText, colX + yardageWidth + 1, currentY + 6);
+                doc.text(adjText, colX + yardageWidth + 4, currentY + 6);
             }
         };
 
