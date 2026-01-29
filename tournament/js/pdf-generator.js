@@ -216,24 +216,23 @@ function drawPageFooter(doc, appStoreQR, playStoreQR, cardEndY) {
  * @returns {number} Adjusted distance in yards
  */
 function calculateAdjustedDistance(baseDistance, baseTemp, baseElevation, baseHumidity, conditionTemp, conditionElevation, conditionHumidity) {
-    // Temperature effect: ~1 yard per 10°F change
-    // Cold = shorter, hot = longer
+    // Sequential multiplicative formula (matches iOS app algorithm)
+
+    // Step 1: Temperature adjustment (0.2% per degree F)
     const tempDiff = conditionTemp - baseTemp;
-    const tempEffect = (tempDiff / 10) * (baseDistance / 250);
-    
-    // Elevation effect: ~2% per 1000ft above sea level
-    // Higher elevation = longer (thinner air)
+    const tempAdjusted = baseDistance * (1.0 + 0.002 * tempDiff);
+
+    // Step 2: Elevation adjustment (2% per 1000ft difference)
     const elevationDiff = conditionElevation - baseElevation;
-    const elevationEffect = (elevationDiff / 1000) * 0.02 * baseDistance;
-    
-    // Humidity effect: ~1 yard per 25% change (minimal effect)
-    // Higher humidity = slightly longer (less dense air)
+    const elevationFactor = 1.0 + (elevationDiff / 1000.0) * 0.02;
+    const elevationAdjusted = tempAdjusted * elevationFactor;
+
+    // Step 3: Humidity adjustment (1% per 100% humidity change)
     const humidityDiff = conditionHumidity - baseHumidity;
-    const humidityEffect = (humidityDiff / 25) * (baseDistance / 300);
-    
-    const adjustedDistance = baseDistance + tempEffect + elevationEffect + humidityEffect;
-    
-    return Math.round(adjustedDistance);
+    const humidityFactor = 1.0 + (humidityDiff / 100.0) * 0.01;
+    const finalAdjusted = elevationAdjusted * humidityFactor;
+
+    return Math.round(finalAdjusted);
 }
 
 /**
