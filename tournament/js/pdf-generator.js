@@ -13,6 +13,9 @@ const PAGE_WIDTH = 8.5 * 72;    // 612 points
 const PAGE_HEIGHT = 11 * 72;    // 792 points
 const PAGE_MARGIN = 18;         // Minimum margin from page edge for printing
 
+// Card width for two-card layouts (fits within margins)
+const CARD_WIDTH_TWO_UP = (PAGE_WIDTH - (PAGE_MARGIN * 2)) / 2;  // 288 points (4 inches)
+
 // Colors
 const COLOR_PRIMARY = [0, 122, 255];      // iOS blue
 const COLOR_TEXT_DARK = [28, 28, 30];     // Near black
@@ -291,16 +294,15 @@ function generateTournamentPDFs(tournament, registrations, logoData, appStoreQR,
 
                 if (day1 && day2) {
                     // Two cards side by side, with page margin
-                    const totalWidth = CARD_WIDTH * 2;
-                    const startX = Math.max(PAGE_MARGIN, (PAGE_WIDTH - totalWidth) / 2);
+                    const startX = PAGE_MARGIN;
 
-                    drawYardageCard(doc, tournament, registration, day1, startX, cardStartY, day1Index + 1);
-                    drawYardageCard(doc, tournament, registration, day2, startX + CARD_WIDTH, cardStartY, day2Index + 1);
+                    drawYardageCard(doc, tournament, registration, day1, startX, cardStartY, day1Index + 1, CARD_WIDTH_TWO_UP);
+                    drawYardageCard(doc, tournament, registration, day2, startX + CARD_WIDTH_TWO_UP, cardStartY, day2Index + 1, CARD_WIDTH_TWO_UP);
                 } else if (day1) {
                     // Single card, centered
                     const startX = (PAGE_WIDTH - CARD_WIDTH) / 2;
 
-                    drawYardageCard(doc, tournament, registration, day1, startX, cardStartY, day1Index + 1);
+                    drawYardageCard(doc, tournament, registration, day1, startX, cardStartY, day1Index + 1, CARD_WIDTH);
                 }
             }
         });
@@ -330,16 +332,15 @@ function generateTournamentPDFs(tournament, registrations, logoData, appStoreQR,
 
             if (reg1 && reg2) {
                 // Two cards side by side, with page margin
-                const totalWidth = CARD_WIDTH * 2;
-                const startX = Math.max(PAGE_MARGIN, (PAGE_WIDTH - totalWidth) / 2);
+                const startX = PAGE_MARGIN;
 
-                drawYardageCard(doc, tournament, reg1, dayConditions, startX, cardStartY, null);
-                drawYardageCard(doc, tournament, reg2, dayConditions, startX + CARD_WIDTH, cardStartY, null);
+                drawYardageCard(doc, tournament, reg1, dayConditions, startX, cardStartY, null, CARD_WIDTH_TWO_UP);
+                drawYardageCard(doc, tournament, reg2, dayConditions, startX + CARD_WIDTH_TWO_UP, cardStartY, null, CARD_WIDTH_TWO_UP);
             } else if (reg1) {
                 // Single card, centered
                 const startX = (PAGE_WIDTH - CARD_WIDTH) / 2;
 
-                drawYardageCard(doc, tournament, reg1, dayConditions, startX, cardStartY, null);
+                drawYardageCard(doc, tournament, reg1, dayConditions, startX, cardStartY, null, CARD_WIDTH);
             }
         }
     }
@@ -356,16 +357,17 @@ function generateTournamentPDFs(tournament, registrations, logoData, appStoreQR,
  * @param {number} x - X position
  * @param {number} y - Y position
  * @param {number|null} dayNumber - Day number (null for single-day)
+ * @param {number} cardWidth - Width of the card (use CARD_WIDTH or CARD_WIDTH_TWO_UP)
  */
-function drawYardageCard(doc, tournament, registration, dayConditions, x, y, dayNumber) {
-    const margin = 20;
-    const contentWidth = CARD_WIDTH - (margin * 2);
+function drawYardageCard(doc, tournament, registration, dayConditions, x, y, dayNumber, cardWidth = CARD_WIDTH) {
+    const margin = 18;
+    const contentWidth = cardWidth - (margin * 2);
     let currentY = y + margin;
 
     // Card border
     doc.setDrawColor(...COLOR_LINE);
     doc.setLineWidth(0.5);
-    doc.rect(x, y, CARD_WIDTH, CARD_HEIGHT);
+    doc.rect(x, y, cardWidth, CARD_HEIGHT);
 
     // Tournament name
     doc.setFont('helvetica', 'bold');
@@ -373,7 +375,7 @@ function drawYardageCard(doc, tournament, registration, dayConditions, x, y, day
     doc.setTextColor(...COLOR_TEXT_DARK);
     const tournamentName = tournament.name;
     const nameWidth = doc.getTextWidth(tournamentName);
-    doc.text(tournamentName, x + (CARD_WIDTH - nameWidth) / 2, currentY + 12);
+    doc.text(tournamentName, x + (cardWidth - nameWidth) / 2, currentY + 12);
     currentY += 20;
 
     // Course name
@@ -382,13 +384,13 @@ function drawYardageCard(doc, tournament, registration, dayConditions, x, y, day
     doc.setTextColor(...COLOR_TEXT_GRAY);
     const courseName = tournament.courseName || tournament.course || '';
     const courseWidth = doc.getTextWidth(courseName);
-    doc.text(courseName, x + (CARD_WIDTH - courseWidth) / 2, currentY + 8);
+    doc.text(courseName, x + (cardWidth - courseWidth) / 2, currentY + 8);
     currentY += 16;
 
     // Divider line
     doc.setDrawColor(...COLOR_LINE);
     doc.setLineWidth(0.5);
-    doc.line(x + margin, currentY, x + CARD_WIDTH - margin, currentY);
+    doc.line(x + margin, currentY, x + cardWidth - margin, currentY);
     currentY += 12;
 
     // Player name
@@ -425,7 +427,7 @@ function drawYardageCard(doc, tournament, registration, dayConditions, x, y, day
     // Table header
     doc.setDrawColor(...COLOR_LINE);
     doc.setLineWidth(0.5);
-    doc.line(x + margin, currentY, x + CARD_WIDTH - margin, currentY);
+    doc.line(x + margin, currentY, x + cardWidth - margin, currentY);
     currentY += 4;
 
     const colClub = x + margin;
@@ -582,7 +584,7 @@ function generatePlayerPDF(tournament, registration, logoData, appStoreQR, playS
         };
 
         const startX = (PAGE_WIDTH - CARD_WIDTH) / 2;
-        drawYardageCard(doc, tournament, registration, dayConditions, startX, cardStartY, null);
+        drawYardageCard(doc, tournament, registration, dayConditions, startX, cardStartY, null, CARD_WIDTH);
     } else {
         // Multi-day: pages with 2 days each
         const pagesNeeded = Math.ceil(numDays / 2);
@@ -604,16 +606,15 @@ function generatePlayerPDF(tournament, registration, logoData, appStoreQR, playS
 
             if (day1 && day2) {
                 // Two cards side by side, with page margin
-                const totalWidth = CARD_WIDTH * 2;
-                const startX = Math.max(PAGE_MARGIN, (PAGE_WIDTH - totalWidth) / 2);
+                const startX = PAGE_MARGIN;
 
-                drawYardageCard(doc, tournament, registration, day1, startX, cardStartY, day1Index + 1);
-                drawYardageCard(doc, tournament, registration, day2, startX + CARD_WIDTH, cardStartY, day2Index + 1);
+                drawYardageCard(doc, tournament, registration, day1, startX, cardStartY, day1Index + 1, CARD_WIDTH_TWO_UP);
+                drawYardageCard(doc, tournament, registration, day2, startX + CARD_WIDTH_TWO_UP, cardStartY, day2Index + 1, CARD_WIDTH_TWO_UP);
             } else if (day1) {
                 // Single card, centered
                 const startX = (PAGE_WIDTH - CARD_WIDTH) / 2;
 
-                drawYardageCard(doc, tournament, registration, day1, startX, cardStartY, day1Index + 1);
+                drawYardageCard(doc, tournament, registration, day1, startX, cardStartY, day1Index + 1, CARD_WIDTH);
             }
         }
     }
