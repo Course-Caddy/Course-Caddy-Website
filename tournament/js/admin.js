@@ -420,13 +420,15 @@ function setupDownloadButton() {
 function setupDateListeners() {
     const startDateInput = document.getElementById('new-tournament-start-date');
     const endDateInput = document.getElementById('new-tournament-end-date');
+    const timezoneSelect = document.getElementById('new-tournament-timezone');
 
     const updateDays = () => {
         const startDate = startDateInput.value;
         const endDate = endDateInput.value;
+        const timezone = timezoneSelect.value;
 
         if (startDate && endDate) {
-            generateDayCards(startDate, endDate);
+            generateDayCards(startDate, endDate, timezone);
         }
     };
 
@@ -435,17 +437,21 @@ function setupDateListeners() {
     endDateInput.addEventListener('change', updateDays);
     startDateInput.addEventListener('input', updateDays);
     endDateInput.addEventListener('input', updateDays);
+    // Also regenerate when timezone changes
+    timezoneSelect.addEventListener('change', updateDays);
 }
 
 /**
  * Generate day condition cards for each tournament day
- * @param {string} startDateStr 
- * @param {string} endDateStr 
+ * @param {string} startDateStr
+ * @param {string} endDateStr
+ * @param {string} timezone - IANA timezone string (e.g., 'America/New_York')
  */
-function generateDayCards(startDateStr, endDateStr) {
+function generateDayCards(startDateStr, endDateStr, timezone) {
     const container = document.getElementById('days-conditions-container');
-    const start = new Date(startDateStr);
-    const end = new Date(endDateStr);
+    // Parse dates as local time by appending T12:00:00 (noon) to avoid timezone edge cases
+    const start = new Date(startDateStr + 'T12:00:00');
+    const end = new Date(endDateStr + 'T12:00:00');
     
     // Validate dates
     if (end < start) {
@@ -471,11 +477,14 @@ function generateDayCards(startDateStr, endDateStr) {
         tournamentDays.push(date);
     }
     
+    // Get timezone from form or use default
+    const tz = timezone || document.getElementById('new-tournament-timezone').value || 'America/New_York';
+
     // Generate HTML for each day
     let html = '';
     tournamentDays.forEach((date, index) => {
         const dayNum = index + 1;
-        const dateStr = formatDateLong(date);
+        const dateStr = formatDateLongWithTimezone(date, tz);
         const dateId = formatDateId(date);
         
         html += `
@@ -877,6 +886,7 @@ function setupCreateForm() {
             date: document.getElementById('new-tournament-start-date').value, // For backwards compatibility
             registrationCutoff: document.getElementById('new-tournament-cutoff').value,
             elevation: parseInt(document.getElementById('new-tournament-elevation').value),
+            timezone: document.getElementById('new-tournament-timezone').value,
             latitude: parseFloat(document.getElementById('course-latitude').value) || null,
             longitude: parseFloat(document.getElementById('course-longitude').value) || null,
             days: days,
@@ -948,14 +958,31 @@ function formatDate(date) {
 }
 
 /**
+ * Format date as "Saturday, June 14, 2025" in a specific timezone
+ * @param {Date} date
+ * @param {string} timezone - IANA timezone string (e.g., 'America/New_York')
+ * @returns {string}
+ */
+function formatDateLongWithTimezone(date, timezone) {
+    const options = {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+        timeZone: timezone
+    };
+    return date.toLocaleDateString('en-US', options);
+}
+
+/**
  * Format date as "Saturday, June 14, 2025"
- * @param {Date} date 
+ * @param {Date} date
  * @returns {string}
  */
 function formatDateLong(date) {
-    const options = { 
+    const options = {
         weekday: 'long',
-        month: 'long', 
+        month: 'long',
         day: 'numeric',
         year: 'numeric'
     };
@@ -1215,6 +1242,7 @@ function enterEditMode(tournament) {
     document.getElementById('new-tournament-end-date').value = endDate;
     document.getElementById('new-tournament-cutoff').value = tournament.registrationCutoff || '';
     document.getElementById('new-tournament-elevation').value = tournament.elevation || '';
+    document.getElementById('new-tournament-timezone').value = tournament.timezone || 'America/New_York';
 
     // Populate location fields if available
     if (tournament.latitude && tournament.longitude) {
@@ -1230,8 +1258,9 @@ function enterEditMode(tournament) {
     }
 
     // Generate day cards from the form date values
+    const timezone = tournament.timezone || 'America/New_York';
     if (startDate && endDate) {
-        generateDayCards(startDate, endDate);
+        generateDayCards(startDate, endDate, timezone);
 
         // Populate day conditions after cards are generated
         setTimeout(() => {

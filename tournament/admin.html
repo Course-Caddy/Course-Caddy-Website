@@ -754,7 +754,22 @@
                                 <input type="number" id="new-tournament-elevation" class="form-input" placeholder="500" required>
                             </div>
                         </div>
-                        
+
+                        <div class="form-group">
+                            <label class="form-label" for="new-tournament-timezone">Course Timezone *</label>
+                            <select id="new-tournament-timezone" class="form-input" required>
+                                <option value="">Select timezone...</option>
+                                <option value="America/New_York">Eastern Time (ET)</option>
+                                <option value="America/Chicago">Central Time (CT)</option>
+                                <option value="America/Denver">Mountain Time (MT)</option>
+                                <option value="America/Phoenix">Arizona (MST - no DST)</option>
+                                <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                                <option value="America/Anchorage">Alaska Time (AKT)</option>
+                                <option value="Pacific/Honolulu">Hawaii Time (HT)</option>
+                                <option value="America/Puerto_Rico">Atlantic Time (AST)</option>
+                            </select>
+                        </div>
+
                         <!-- Weather Section -->
                         <h3 style="font-size: 1rem; margin-top: var(--spacing-lg); margin-bottom: var(--spacing-sm);">
                             🌤️ Tournament Conditions
