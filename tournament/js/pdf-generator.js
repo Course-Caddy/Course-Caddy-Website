@@ -507,16 +507,16 @@ function drawYardageCard(doc, tournament, registration, dayConditions, x, y, day
             doc.setTextColor(...COLOR_PRIMARY);
             doc.text(`${dist}`, colX, currentY + 10);
 
-            // Adjustment in small text (green if positive, orange if negative)
+            // Adjustment as superscript (green if positive, orange if negative)
             if (adj !== 0) {
                 const adjText = adj > 0 ? `+${adj}` : `${adj}`;
                 const adjColor = adj > 0 ? COLOR_POSITIVE : COLOR_NEGATIVE;
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(6);
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(5);
                 doc.setTextColor(...adjColor);
-                // Position adjustment text to the right of the yardage
+                // Position as superscript: right of yardage, raised up
                 const yardageWidth = doc.getTextWidth(`${dist}`);
-                doc.text(adjText, colX + yardageWidth + 2, currentY + 10);
+                doc.text(adjText, colX + yardageWidth + 1, currentY + 6);
             }
         };
 
