@@ -17,6 +17,8 @@ const COLOR_PRIMARY = [0, 122, 255];      // iOS blue
 const COLOR_TEXT_DARK = [28, 28, 30];     // Near black
 const COLOR_TEXT_GRAY = [99, 99, 102];    // Gray
 const COLOR_LINE = [200, 200, 200];       // Light gray
+const COLOR_POSITIVE = [52, 199, 89];     // Green (helping - ball goes further)
+const COLOR_NEGATIVE = [255, 149, 0];     // Orange (hurting - ball goes shorter)
 
 // Store URLs for QR codes
 const APP_STORE_URL = 'https://apps.apple.com/us/app/course-caddy-golf/id6757511581';
@@ -478,26 +480,50 @@ function drawYardageCard(doc, tournament, registration, dayConditions, x, y, day
         doc.text(club.name, colClub, currentY + 10);
         
         // Calculate adjusted distances
+        const baseDist = club.distance;
         const mornDist = calculateAdjustedDistance(
-            club.distance, baseTemp, baseElevation, baseHumidity,
+            baseDist, baseTemp, baseElevation, baseHumidity,
             dayConditions.morningTemp, tournament.elevation, dayConditions.morningHumidity
         );
         const aftnDist = calculateAdjustedDistance(
-            club.distance, baseTemp, baseElevation, baseHumidity,
+            baseDist, baseTemp, baseElevation, baseHumidity,
             dayConditions.afternoonTemp, tournament.elevation, dayConditions.afternoonHumidity
         );
         const eveDist = calculateAdjustedDistance(
-            club.distance, baseTemp, baseElevation, baseHumidity,
+            baseDist, baseTemp, baseElevation, baseHumidity,
             dayConditions.eveningTemp, tournament.elevation, dayConditions.eveningHumidity
         );
-        
-        // Distance values
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...COLOR_PRIMARY);
-        doc.text(`${mornDist}`, colMorn, currentY + 10);
-        doc.text(`${aftnDist}`, colAftn, currentY + 10);
-        doc.text(`${eveDist}`, colEve, currentY + 10);
-        
+
+        // Calculate adjustments
+        const mornAdj = mornDist - baseDist;
+        const aftnAdj = aftnDist - baseDist;
+        const eveAdj = eveDist - baseDist;
+
+        // Helper to draw yardage with adjustment
+        const drawYardageWithAdj = (dist, adj, colX) => {
+            // Main yardage in blue
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(10);
+            doc.setTextColor(...COLOR_PRIMARY);
+            doc.text(`${dist}`, colX, currentY + 10);
+
+            // Adjustment in small text (green if positive, orange if negative)
+            if (adj !== 0) {
+                const adjText = adj > 0 ? `+${adj}` : `${adj}`;
+                const adjColor = adj > 0 ? COLOR_POSITIVE : COLOR_NEGATIVE;
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(6);
+                doc.setTextColor(...adjColor);
+                // Position adjustment text to the right of the yardage
+                const yardageWidth = doc.getTextWidth(`${dist}`);
+                doc.text(adjText, colX + yardageWidth + 2, currentY + 10);
+            }
+        };
+
+        drawYardageWithAdj(mornDist, mornAdj, colMorn);
+        drawYardageWithAdj(aftnDist, aftnAdj, colAftn);
+        drawYardageWithAdj(eveDist, eveAdj, colEve);
+
         currentY += 16;
     });
 
