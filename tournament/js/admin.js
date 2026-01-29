@@ -757,7 +757,11 @@ async function fetchWeatherForDays(lat, lon) {
  * @returns {Object} Tournament object with updated weather conditions
  */
 async function fetchLiveWeatherForTournament(tournament) {
-    // If no coordinates, return original tournament
+    // If auto weather is disabled or no coordinates, return original tournament
+    if (tournament.useAutoWeather === false) {
+        console.log('Auto weather disabled, using stored weather data');
+        return tournament;
+    }
     if (!tournament.latitude || !tournament.longitude) {
         console.log('No coordinates for tournament, using stored weather data');
         return tournament;
@@ -887,6 +891,7 @@ function setupCreateForm() {
             registrationCutoff: document.getElementById('new-tournament-cutoff').value,
             elevation: parseInt(document.getElementById('new-tournament-elevation').value),
             timezone: document.getElementById('new-tournament-timezone').value,
+            useAutoWeather: document.getElementById('use-auto-weather').checked,
             latitude: parseFloat(document.getElementById('course-latitude').value) || null,
             longitude: parseFloat(document.getElementById('course-longitude').value) || null,
             days: days,
@@ -1244,18 +1249,12 @@ function enterEditMode(tournament) {
     document.getElementById('new-tournament-elevation').value = tournament.elevation || '';
     document.getElementById('new-tournament-timezone').value = tournament.timezone || 'America/New_York';
 
-    // Populate location fields if available
-    if (tournament.latitude && tournament.longitude) {
-        document.getElementById('use-auto-weather').checked = true;
-        document.getElementById('location-section').style.display = 'block';
-        document.getElementById('course-latitude').value = tournament.latitude;
-        document.getElementById('course-longitude').value = tournament.longitude;
-    } else {
-        document.getElementById('use-auto-weather').checked = false;
-        document.getElementById('location-section').style.display = 'none';
-        document.getElementById('course-latitude').value = '';
-        document.getElementById('course-longitude').value = '';
-    }
+    // Populate location fields and auto weather checkbox
+    const useAutoWeather = tournament.useAutoWeather !== undefined ? tournament.useAutoWeather : (tournament.latitude && tournament.longitude);
+    document.getElementById('use-auto-weather').checked = useAutoWeather;
+    document.getElementById('location-section').style.display = useAutoWeather ? 'block' : 'none';
+    document.getElementById('course-latitude').value = tournament.latitude || '';
+    document.getElementById('course-longitude').value = tournament.longitude || '';
 
     // Generate day cards from the form date values
     const timezone = tournament.timezone || 'America/New_York';
