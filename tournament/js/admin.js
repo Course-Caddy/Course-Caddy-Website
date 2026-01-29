@@ -904,6 +904,9 @@ function setupCreateForm() {
             eveningHumidity: days[0].eveningHumidity
         };
 
+        console.log('DEBUG save - useAutoWeather checkbox checked:', document.getElementById('use-auto-weather').checked);
+        console.log('DEBUG save - tournament.useAutoWeather:', tournament.useAutoWeather);
+
         const isEditing = editMode;
         const actionWord = isEditing ? 'updated' : 'created';
 
@@ -1250,7 +1253,11 @@ function enterEditMode(tournament) {
     document.getElementById('new-tournament-timezone').value = tournament.timezone || 'America/New_York';
 
     // Populate location fields and auto weather checkbox
+    console.log('DEBUG enterEditMode - tournament.useAutoWeather:', tournament.useAutoWeather);
+    console.log('DEBUG enterEditMode - tournament.latitude:', tournament.latitude);
+    console.log('DEBUG enterEditMode - tournament.longitude:', tournament.longitude);
     const useAutoWeather = tournament.useAutoWeather !== undefined ? tournament.useAutoWeather : (tournament.latitude && tournament.longitude);
+    console.log('DEBUG enterEditMode - computed useAutoWeather:', useAutoWeather);
     document.getElementById('use-auto-weather').checked = useAutoWeather;
     document.getElementById('location-section').style.display = useAutoWeather ? 'block' : 'none';
     document.getElementById('course-latitude').value = tournament.latitude || '';
