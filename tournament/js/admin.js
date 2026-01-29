@@ -420,18 +420,21 @@ function setupDownloadButton() {
 function setupDateListeners() {
     const startDateInput = document.getElementById('new-tournament-start-date');
     const endDateInput = document.getElementById('new-tournament-end-date');
-    
+
     const updateDays = () => {
         const startDate = startDateInput.value;
         const endDate = endDateInput.value;
-        
+
         if (startDate && endDate) {
             generateDayCards(startDate, endDate);
         }
     };
-    
+
+    // Listen to both change and input events for better responsiveness
     startDateInput.addEventListener('change', updateDays);
     endDateInput.addEventListener('change', updateDays);
+    startDateInput.addEventListener('input', updateDays);
+    endDateInput.addEventListener('input', updateDays);
 }
 
 /**
@@ -1202,11 +1205,22 @@ function enterEditMode(tournament) {
     document.getElementById('form-title').textContent = 'Edit Tournament';
     document.getElementById('form-submit-btn').textContent = 'Update Tournament';
 
+    // Get actual dates from days array if available (more reliable than startDate/endDate)
+    const days = tournament.days || [];
+    let actualStartDate = tournament.startDate || tournament.date || '';
+    let actualEndDate = tournament.endDate || tournament.startDate || tournament.date || '';
+
+    if (days.length > 0) {
+        // Use dates from the days array since they represent the actual stored data
+        actualStartDate = days[0].date;
+        actualEndDate = days[days.length - 1].date;
+    }
+
     // Populate form fields
     document.getElementById('new-tournament-name').value = tournament.name || '';
     document.getElementById('new-tournament-course').value = tournament.course || tournament.courseName || '';
-    document.getElementById('new-tournament-start-date').value = tournament.startDate || tournament.date || '';
-    document.getElementById('new-tournament-end-date').value = tournament.endDate || tournament.startDate || tournament.date || '';
+    document.getElementById('new-tournament-start-date').value = actualStartDate;
+    document.getElementById('new-tournament-end-date').value = actualEndDate;
     document.getElementById('new-tournament-cutoff').value = tournament.registrationCutoff || '';
     document.getElementById('new-tournament-elevation').value = tournament.elevation || '';
 
@@ -1223,11 +1237,9 @@ function enterEditMode(tournament) {
         document.getElementById('course-longitude').value = '';
     }
 
-    // Generate day cards based on dates
-    const startDate = tournament.startDate || tournament.date;
-    const endDate = tournament.endDate || tournament.startDate || tournament.date;
-    if (startDate && endDate) {
-        generateDayCards(startDate, endDate);
+    // Generate day cards based on actual dates
+    if (actualStartDate && actualEndDate) {
+        generateDayCards(actualStartDate, actualEndDate);
 
         // Populate day conditions after cards are generated
         setTimeout(() => {
