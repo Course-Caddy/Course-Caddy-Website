@@ -11,6 +11,7 @@ const CARD_HEIGHT = 7 * 72;     // 504 points
 // Page dimensions (letter size)
 const PAGE_WIDTH = 8.5 * 72;    // 612 points
 const PAGE_HEIGHT = 11 * 72;    // 792 points
+const PAGE_MARGIN = 18;         // Minimum margin from page edge for printing
 
 // Colors
 const COLOR_PRIMARY = [0, 122, 255];      // iOS blue
@@ -289,9 +290,9 @@ function generateTournamentPDFs(tournament, registrations, logoData, appStoreQR,
                 const day2 = day2Index < numDays ? tournament.days[day2Index] : null;
 
                 if (day1 && day2) {
-                    // Two cards side by side, centered
+                    // Two cards side by side, with page margin
                     const totalWidth = CARD_WIDTH * 2;
-                    const startX = (PAGE_WIDTH - totalWidth) / 2;
+                    const startX = Math.max(PAGE_MARGIN, (PAGE_WIDTH - totalWidth) / 2);
 
                     drawYardageCard(doc, tournament, registration, day1, startX, cardStartY, day1Index + 1);
                     drawYardageCard(doc, tournament, registration, day2, startX + CARD_WIDTH, cardStartY, day2Index + 1);
@@ -328,9 +329,9 @@ function generateTournamentPDFs(tournament, registrations, logoData, appStoreQR,
             };
 
             if (reg1 && reg2) {
-                // Two cards side by side
+                // Two cards side by side, with page margin
                 const totalWidth = CARD_WIDTH * 2;
-                const startX = (PAGE_WIDTH - totalWidth) / 2;
+                const startX = Math.max(PAGE_MARGIN, (PAGE_WIDTH - totalWidth) / 2);
 
                 drawYardageCard(doc, tournament, reg1, dayConditions, startX, cardStartY, null);
                 drawYardageCard(doc, tournament, reg2, dayConditions, startX + CARD_WIDTH, cardStartY, null);
@@ -602,9 +603,9 @@ function generatePlayerPDF(tournament, registration, logoData, appStoreQR, playS
             const day2 = day2Index < numDays ? tournament.days[day2Index] : null;
 
             if (day1 && day2) {
-                // Two cards side by side, centered
+                // Two cards side by side, with page margin
                 const totalWidth = CARD_WIDTH * 2;
-                const startX = (PAGE_WIDTH - totalWidth) / 2;
+                const startX = Math.max(PAGE_MARGIN, (PAGE_WIDTH - totalWidth) / 2);
 
                 drawYardageCard(doc, tournament, registration, day1, startX, cardStartY, day1Index + 1);
                 drawYardageCard(doc, tournament, registration, day2, startX + CARD_WIDTH, cardStartY, day2Index + 1);
